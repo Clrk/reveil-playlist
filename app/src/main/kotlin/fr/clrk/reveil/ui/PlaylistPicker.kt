@@ -1,5 +1,16 @@
 package fr.clrk.reveil.ui
 
+import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.PrimaryTabRow
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.platform.LocalContext
+import fr.clrk.reveil.music.YtMusicAccount
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -52,18 +63,39 @@ import kotlinx.coroutines.withContext
 
 private const val DEBOUNCE_MS = 500L
 
-/** Full-screen search: type a name (or paste a link), tap a playlist. */
+/** Full-screen picker: my YouTube Music playlists, or a search (a pasted link works too). */
 @Composable
 fun PlaylistPicker(onPick: (PlaylistChoice) -> Unit, onClose: () -> Unit) {
-    var ui by remember { mutableStateOf(PickerUi()) }
+    val account = YtMusicAccount(LocalContext.current)
+    var ui by remember { mutableStateOf(PickerUi(library = if (account.session == null) LibraryUi.NotConnected else LibraryUi.Loading)) }
+    val login = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        if (account.session != null) ui = ui.copy(library = LibraryUi.Loading)
+    }
+    LaunchedEffect(ui.library) { if (ui.library == LibraryUi.Loading) ui = ui.copy(library = loadLibrary(account)) }
     LaunchedEffect(ui.query) {
         delay(DEBOUNCE_MS)
         ui = ui.copy(loading = true)
         ui = ui.copy(result = withContext(Dispatchers.IO) { search(ui.query) }, loading = false)
     }
-    Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        PlaylistPickerScreen(ui, { ui = ui.copy(query = it) }, onPick, onClose)
+    val context = LocalContext.current
+    val events = object : PickerEvents {
+        override fun query(text: String) { ui = ui.copy(query = text) }
+        override fun tab(tab: PickerTab) { ui = ui.copy(tab = tab) }
+        override fun pick(choice: PlaylistChoice) = onPick(choice)
+        override fun signIn() = login.launch(Intent(context, LoginActivity::class.java))
+        override fun signOut() { account.signOut(); ui = ui.copy(library = LibraryUi.NotConnected) }
+        override fun close() = onClose()
     }
+    Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        PlaylistPickerScreen(ui, events)
+    }
+}
+
+private suspend fun loadLibrary(account: YtMusicAccount): LibraryUi = withContext(Dispatchers.IO) {
+    runCatching { account.library() }.fold(
+        { LibraryUi.Loaded(it) },
+        { LibraryUi.Failed("Impossible de lire ta bibliothèque YouTube Music. Reconnecte-toi ou réessaie.") },
+    )
 }
 
 /** Searches YouTube Music; a pasted link gets its real name and size. */
@@ -75,24 +107,68 @@ private fun search(query: String): SearchResult {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PlaylistPickerScreen(ui: PickerUi, onQuery: (String) -> Unit, onPick: (PlaylistChoice) -> Unit, onClose: () -> Unit) {
+fun PlaylistPickerScreen(ui: PickerUi, events: PickerEvents) {
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Choisir une playlist") },
-                navigationIcon = { IconButton(onClick = onClose) { Icon(Icons.Default.ArrowBack, "Retour") } },
+                navigationIcon = { IconButton(onClick = events::close) { Icon(Icons.Default.ArrowBack, "Retour") } },
             )
         },
     ) { padding ->
-        Column(Modifier.padding(padding).padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(
-                ui.query, onQuery, Modifier.fillMaxWidth(), singleLine = true,
-                leadingIcon = { Icon(Icons.Default.Search, null) },
-                placeholder = { Text("Artiste, ambiance… ou lien de playlist") },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+        Column(Modifier.padding(padding)) {
+            PrimaryTabRow(selectedTabIndex = ui.tab.ordinal) {
+                PickerTab.entries.forEach { tab -> Tab(ui.tab == tab, { events.tab(tab) }, text = { Text(tab.label) }) }
+            }
+            Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (ui.tab == PickerTab.MINE) Library(ui.library, events) else SearchTab(ui, events)
+            }
+        }
+    }
+}
+
+@Composable
+private fun SearchTab(ui: PickerUi, events: PickerEvents) {
+    OutlinedTextField(
+        ui.query, events::query, Modifier.fillMaxWidth().padding(top = 8.dp), singleLine = true,
+        leadingIcon = { Icon(Icons.Default.Search, null) },
+        placeholder = { Text("Artiste, ambiance… ou lien de playlist") },
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+    )
+    if (ui.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
+    Results(ui.result, events::pick)
+}
+
+@Composable
+private fun Library(library: LibraryUi, events: PickerEvents) {
+    when (library) {
+        LibraryUi.NotConnected -> SignInCard(events)
+        LibraryUi.Loading -> LinearProgressIndicator(Modifier.fillMaxWidth().padding(top = 16.dp))
+        is LibraryUi.Failed -> Column {
+            Hint(library.message)
+            OutlinedButton(onClick = events::signIn) { Text("Se reconnecter") }
+        }
+        is LibraryUi.Loaded -> LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            items(library.playlists, key = { it.id.value }) { PlaylistRow(it, Modifier.clickable { events.pick(it) }) }
+            item { TextButton(onClick = events::signOut) { Text("Se déconnecter de YouTube Music") } }
+        }
+    }
+}
+
+@Composable
+private fun SignInCard(events: PickerEvents) {
+    Card(Modifier.fillMaxWidth().padding(top = 16.dp)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Retrouve tes playlists", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "Connecte-toi à YouTube Music une fois pour voir tes playlists, " +
+                    "y compris privées, et tes titres « J'aime ». Pas besoin d'abonnement.",
             )
-            if (ui.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
-            Results(ui.result, onPick)
+            Button(onClick = events::signIn) { Text("Se connecter à YouTube Music") }
+            Text(
+                "Ta session reste uniquement sur ce téléphone.",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

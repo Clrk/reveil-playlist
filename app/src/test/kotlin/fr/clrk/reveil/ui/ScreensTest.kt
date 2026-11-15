@@ -58,18 +58,40 @@ class ScreensTest {
         ),
     )
 
-    @Test
-    fun choixPlaylistVide() = shot { PlaylistPickerScreen(PickerUi(), {}, {}, {}) }
+    private val noPickerEvents = object : PickerEvents {
+        override fun query(text: String) = Unit
+        override fun tab(tab: PickerTab) = Unit
+        override fun pick(choice: PlaylistChoice) = Unit
+        override fun signIn() = Unit
+        override fun signOut() = Unit
+        override fun close() = Unit
+    }
+
+    private val mine = listOf(
+        PlaylistChoice(PlaylistId("LM"), "Titres J'aime", "Playlist automatique"),
+        PlaylistChoice(PlaylistId("PLlundi"), "Réveil du lundi", "Thibault • 12 titres"),
+        PlaylistChoice(PlaylistId("PLroad"), "Road trip", "Thibault • 48 titres"),
+    )
+
+    private fun picker(ui: PickerUi) = shot { PlaylistPickerScreen(ui, noPickerEvents) }
 
     @Test
-    fun choixPlaylistResultats() = shot { PlaylistPickerScreen(PickerUi("matin", found), {}, {}, {}) }
+    fun mesPlaylistsNonConnecte() = picker(PickerUi())
 
     @Test
-    fun choixPlaylistHorsLigne() =
-        shot {
-            val message = SearchResult.Message("YouTube Music ne répond pas. Vérifie ta connexion et réessaie.")
-            PlaylistPickerScreen(PickerUi("matin", message), {}, {}, {})
-        }
+    fun mesPlaylists() = picker(PickerUi(library = LibraryUi.Loaded(mine)))
+
+    @Test
+    fun rechercheVide() = picker(PickerUi(tab = PickerTab.SEARCH))
+
+    @Test
+    fun rechercheResultats() = picker(PickerUi("matin", found, tab = PickerTab.SEARCH))
+
+    @Test
+    fun rechercheErreur() {
+        val message = SearchResult.Message("YouTube Music ne répond pas. Vérifie ta connexion et réessaie.")
+        picker(PickerUi("matin", message, tab = PickerTab.SEARCH))
+    }
 
     @Test
     fun editionSansPlaylist() = shot { AlarmEditor(weekend, "", noActions) }

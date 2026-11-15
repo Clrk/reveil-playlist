@@ -10,6 +10,7 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import fr.clrk.reveil.core.Alarm
+import fr.clrk.reveil.core.FallbackPlaylistSource
 import fr.clrk.reveil.core.PlaylistId
 import fr.clrk.reveil.core.PrefetchPolicy
 import kotlinx.coroutines.Dispatchers
@@ -23,7 +24,8 @@ import kotlin.random.Random
 class PrefetchWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         val playlist = PlaylistId(inputData.getString(KEY_PLAYLIST) ?: return@withContext Result.failure())
-        val tracks = runCatching { NewPipePlaylistSource().tracks(playlist) }.getOrNull() ?: return@withContext Result.retry()
+        val source = FallbackPlaylistSource(YtMusicAccount(applicationContext), NewPipePlaylistSource())
+        val tracks = runCatching { source.tracks(playlist) }.getOrNull() ?: return@withContext Result.retry()
         val cache = TrackCache(applicationContext, playlist)
         val plan = PrefetchPolicy.plan(tracks, cache.tracks(), cache.played(), CAPACITY, Random.Default)
         plan.evict.forEach(cache::remove)

@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import androidx.core.content.edit
 import androidx.core.net.toUri
+import fr.clrk.reveil.core.FallbackPlaylistSource
 import fr.clrk.reveil.core.PlaylistId
 import fr.clrk.reveil.core.PlaylistSource
 import fr.clrk.reveil.core.WakeQueueBuilder
@@ -12,6 +13,7 @@ import fr.clrk.reveil.core.WakeSource
 import fr.clrk.reveil.music.AudioResolver
 import fr.clrk.reveil.music.NewPipePlaylistSource
 import fr.clrk.reveil.music.TrackCache
+import fr.clrk.reveil.music.YtMusicAccount
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.runInterruptible
@@ -20,14 +22,15 @@ import kotlinx.coroutines.withTimeout
 import kotlin.random.Random
 
 /** Bridges the wake-up queue of the core to local files and YouTube streams. */
-class RingMusic(context: Context, playlistId: String?) {
+class RingMusic(private val context: Context, playlistId: String?) {
     private val playlist = playlistId?.let(::PlaylistId)
     private val cache = playlist?.let { TrackCache(context, it) }
     private val prefs = context.getSharedPreferences("ring", Context.MODE_PRIVATE)
 
     suspend fun session(): WakeSession = withContext(Dispatchers.IO) {
         val source = PlaylistSource { id ->
-            runBlocking { withTimeout(LIST_TIMEOUT_MS) { runInterruptible { NewPipePlaylistSource().tracks(id) } } }
+            val playlist = FallbackPlaylistSource(YtMusicAccount(context), NewPipePlaylistSource())
+            runBlocking { withTimeout(LIST_TIMEOUT_MS) { runInterruptible { playlist.tracks(id) } } }
         }
         val previousFirst = prefs.getString(LAST_FIRST, null)
         val queue = WakeQueueBuilder(source, Random.Default).build(playlist, cache?.tracks().orEmpty(), previousFirst)
