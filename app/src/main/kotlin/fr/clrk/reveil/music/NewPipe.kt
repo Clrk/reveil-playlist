@@ -83,9 +83,14 @@ object AudioResolver {
 
 /** YouTube Music playlist search (community and featured playlists), no account needed. */
 object NewPipePlaylistSearch : PlaylistSearch {
-    override fun search(query: String): List<FoundPlaylist> {
-        val filters = listOf(YoutubeSearchQueryHandlerFactory.MUSIC_PLAYLISTS)
-        val extractor = ServiceList.YouTube.getSearchExtractor(query, filters, "")
+    override fun search(query: String): List<FoundPlaylist> =
+        searchIn(query, YoutubeSearchQueryHandlerFactory.MUSIC_PLAYLISTS).ifEmpty {
+            searchIn(query, YoutubeSearchQueryHandlerFactory.PLAYLISTS)
+        }
+
+    /** YouTube Music first; plain YouTube playlists when YouTube Music has nothing (e.g. French queries). */
+    private fun searchIn(query: String, filter: String): List<FoundPlaylist> {
+        val extractor = ServiceList.YouTube.getSearchExtractor(query, listOf(filter), "")
         extractor.fetchPage()
         return extractor.initialPage.items.filterIsInstance<PlaylistInfoItem>().map {
             val cover = it.thumbnails.maxByOrNull { thumbnail -> thumbnail.height }?.url

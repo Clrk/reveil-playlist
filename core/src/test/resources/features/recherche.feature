@@ -16,10 +16,10 @@ Fonctionnalité: Trouver une playlist YouTube Music sans coller de lien
     Alors aucune recherche n'est lancée
     Et on me propose la playlist "PLabc123"
 
-  Scénario: Sans réseau, la recherche l'indique
+  Scénario: Sans réseau ou si YouTube refuse, la recherche l'indique
     Soit le téléphone est hors-ligne
     Quand je cherche "matin"
-    Alors on m'indique "Pas de connexion à YouTube Music"
+    Alors on m'indique "YouTube Music ne répond pas. Vérifie ta connexion et réessaie."
 
   Scénario: Une recherche sans résultat l'indique
     Quand je cherche "zzzz"

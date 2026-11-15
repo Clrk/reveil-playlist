@@ -66,7 +66,10 @@ class ScreensTest {
 
     @Test
     fun choixPlaylistHorsLigne() =
-        shot { PlaylistPickerScreen(PickerUi("matin", SearchResult.Message("Pas de connexion à YouTube Music")), {}, {}, {}) }
+        shot {
+            val message = SearchResult.Message("YouTube Music ne répond pas. Vérifie ta connexion et réessaie.")
+            PlaylistPickerScreen(PickerUi("matin", message), {}, {}, {})
+        }
 
     @Test
     fun editionSansPlaylist() = shot { AlarmEditor(weekend, "", noActions) }
