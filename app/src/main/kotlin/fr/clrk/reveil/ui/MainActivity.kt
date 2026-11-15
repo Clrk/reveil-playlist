@@ -20,7 +20,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -135,7 +134,7 @@ class MainActivity : ComponentActivity() {
                     Text(alarm.time.format(DateTimeFormatter.ofPattern("HH:mm")), fontSize = 40.sp)
                     Text(listOf(alarm.label, Days.summary(alarm.days)).filter { it.isNotBlank() }.joinToString(" · "))
                 }
-                if (alarm.playlistId != null) Icon(Icons.Default.MusicNote, "Playlist")
+                if (alarm.playlistId != null) Text("♪", fontSize = 24.sp)
                 Switch(checked = alarm.enabled, onCheckedChange = { app.alarms.setEnabled(alarm.id, it); changed() })
             }
         }
