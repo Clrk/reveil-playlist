@@ -9,41 +9,18 @@ import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.Card
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import fr.clrk.reveil.alarm.RingService
 import fr.clrk.reveil.app
 import fr.clrk.reveil.core.Alarm
 import fr.clrk.reveil.music.PrefetchScheduler
 import java.time.Duration
+import java.time.LocalTime
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -75,7 +52,7 @@ class MainActivity : ComponentActivity() {
     private fun readShare(intent: Intent?) {
         val text = intent?.takeIf { it.action == Intent.ACTION_SEND }?.getStringExtra(Intent.EXTRA_TEXT) ?: return
         sharedLink = text
-        editing = Alarm.at(java.time.LocalTime.of(DEFAULT_HOUR, 0)).copy(label = "")
+        editing = Alarm.at(LocalTime.of(DEFAULT_HOUR, 0)).copy(label = "")
     }
 
     private fun refresh() { alarms = app.alarms.list() }
@@ -93,51 +70,16 @@ class MainActivity : ComponentActivity() {
         override fun close() { editing = null; sharedLink = "" }
     }
 
-    @OptIn(ExperimentalMaterial3Api::class)
+    private val listEvents = object : ListEvents {
+        override fun add() { editing = Alarm.at(LocalTime.of(DEFAULT_HOUR, 0)) }
+        override fun open(alarm: Alarm) { editing = alarm }
+        override fun toggle(alarm: Alarm, enabled: Boolean) { app.alarms.setEnabled(alarm.id, enabled); changed() }
+    }
+
     @Composable
     private fun Screen() {
-        Scaffold(
-            topBar = { TopAppBar(title = { Text("Réveils") }) },
-            floatingActionButton = {
-                FloatingActionButton(onClick = { editing = Alarm.at(java.time.LocalTime.of(DEFAULT_HOUR, 0)) }) {
-                    Icon(Icons.Default.Add, "Nouvelle alarme")
-                }
-            },
-        ) { padding ->
-            LazyColumn(
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.padding(padding),
-            ) {
-                item { Header() }
-                items(alarms, key = { it.id }) { AlarmCard(it) }
-            }
-        }
+        AlarmListScreen(ListUi(alarms, nextText(), permissionWarnings()), listEvents)
         editing?.let { AlarmEditor(it, sharedLink, actions) }
-    }
-
-    @Composable
-    private fun Header() {
-        Column {
-            Text(nextText(), style = MaterialTheme.typography.titleMedium)
-            permissionWarnings().forEach { (text, fix) ->
-                TextButton(onClick = fix) { Text("⚠ $text", color = MaterialTheme.colorScheme.error) }
-            }
-        }
-    }
-
-    @Composable
-    private fun AlarmCard(alarm: Alarm) {
-        Card(Modifier.fillMaxWidth().clickable { editing = alarm }) {
-            Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(alarm.time.format(DateTimeFormatter.ofPattern("HH:mm")), fontSize = 40.sp)
-                    Text(listOf(alarm.label, Days.summary(alarm.days)).filter { it.isNotBlank() }.joinToString(" · "))
-                }
-                if (alarm.playlistId != null) Text("♪", fontSize = 24.sp)
-                Switch(checked = alarm.enabled, onCheckedChange = { app.alarms.setEnabled(alarm.id, it); changed() })
-            }
-        }
     }
 
     private fun nextText(): String {

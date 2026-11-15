@@ -14,6 +14,7 @@ data class Alarm(
     val enabled: Boolean = true,
     val snoozeMinutes: Int = DEFAULT_SNOOZE_MINUTES,
     val playlistId: String? = null,
+    val playlistTitle: String? = null,
     val snoozedUntil: Instant? = null,
 ) {
     val repeating: Boolean get() = days.isNotEmpty()

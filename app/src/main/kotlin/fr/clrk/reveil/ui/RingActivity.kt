@@ -37,7 +37,7 @@ class RingActivity : ComponentActivity() {
             MaterialTheme(colorScheme = reveilColors()) {
                 val ui by RingState.ui.collectAsStateWithLifecycle()
                 LaunchedEffect(ui) { if (ui == null) finish() }
-                ui?.let { RingScreen(it, ::send) }
+                ui?.let { RingScreen(it, send = ::send) }
             }
         }
     }
@@ -49,14 +49,18 @@ class RingActivity : ComponentActivity() {
 }
 
 @Composable
-private fun RingScreen(ui: RingState.Ui, send: (String) -> Unit) {
+internal fun RingScreen(
+    ui: RingState.Ui,
+    now: String = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm")),
+    send: (String) -> Unit,
+) {
     Surface(Modifier.fillMaxSize()) {
         Column(
             Modifier.padding(32.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm")), fontSize = 72.sp)
+            Text(now, fontSize = 72.sp)
             Text(ui.label.ifBlank { "Réveil" }, style = MaterialTheme.typography.headlineSmall)
             Spacer(Modifier.height(16.dp))
             Text("♪ ${ui.nowPlaying}", textAlign = TextAlign.Center)

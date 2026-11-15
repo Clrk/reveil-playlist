@@ -57,9 +57,9 @@ Fonctionnalité: Gestion des alarmes
     Et l'alarme "Weekend" n'est pas programmée
 
   Scénario: Les alarmes sont conservées entre deux lancements de l'application
-    Soit l'alarme "Boulot" à "07:30" répétée "lun" avec la playlist "PLabc"
+    Soit l'alarme "Boulot" à "07:30" répétée "lun" avec la playlist "PLabc" nommée "Chill matin"
     Quand l'application redémarre
-    Alors l'alarme "Boulot" sonne à "07:30" les "lun" avec la playlist "PLabc"
+    Alors l'alarme "Boulot" sonne à "07:30" les "lun" avec la playlist "PLabc" nommée "Chill matin"
 
   Scénario: Des données illisibles donnent une liste vide plutôt qu'un plantage
     Soit les données enregistrées sont corrompues

@@ -24,8 +24,10 @@ private fun StepRegistry<AlarmWorld>.creationSteps() {
     step("(?:je crée )?$REPEATED") { (label, time, days) ->
         remember(service.create(Formats.time(time), Formats.days(days), label))
     }
-    step("$REPEATED avec la playlist \"([^\"]+)\"") { (label, time, days, playlist) ->
-        remember(service.create(Formats.time(time), Formats.days(days), label, playlistId = playlist))
+    step("$REPEATED avec la playlist \"([^\"]+)\" nommée \"([^\"]+)\"") { values ->
+        val (label, time, days, playlist) = values
+        val created = service.create(Formats.time(time), Formats.days(days), label, playlistId = playlist)
+        remember(service.update(created.copy(playlistTitle = values[4])))
     }
     step("$REPEATED avec un snooze de \"(\\d+)\" minutes") { (label, time, days, minutes) ->
         remember(service.create(Formats.time(time), Formats.days(days), label, snoozeMinutes = minutes.toInt()))
@@ -78,9 +80,10 @@ private fun StepRegistry<AlarmWorld>.assertionSteps() {
     step("la liste des alarmes est \"([^\"]*)\"") { (labels) ->
         assertEquals(Formats.list(labels), service.list().map { it.label })
     }
-    step("$ALARM sonne à \"([^\"]+)\" les \"([^\"]+)\" avec la playlist \"([^\"]+)\"") { (label, time, days, playlist) ->
-        val alarm = alarm(label)
-        assertEquals(listOf(Formats.time(time), Formats.days(days), playlist), listOf(alarm.time, alarm.days, alarm.playlistId))
+    step("$ALARM sonne à \"([^\"]+)\" les \"([^\"]+)\" avec la playlist \"([^\"]+)\" nommée \"([^\"]+)\"") { values ->
+        val alarm = alarm(values[0])
+        val expected = listOf(Formats.time(values[1]), Formats.days(values[2]), values[3], values[4])
+        assertEquals(expected, listOf(alarm.time, alarm.days, alarm.playlistId, alarm.playlistTitle))
     }
     step("le prochain réveil est \"([^\"]+)\" le \"([^\"]+)\"") { (label, moment) ->
         val next = service.next()

@@ -1,6 +1,9 @@
 package fr.clrk.reveil.music
 
+import fr.clrk.reveil.core.FoundPlaylist
+import fr.clrk.reveil.core.PlaylistChoice
 import fr.clrk.reveil.core.PlaylistId
+import fr.clrk.reveil.core.PlaylistSearch
 import fr.clrk.reveil.core.PlaylistSource
 import fr.clrk.reveil.core.Track
 import okhttp3.OkHttpClient
@@ -13,6 +16,8 @@ import org.schabi.newpipe.extractor.downloader.Request
 import org.schabi.newpipe.extractor.downloader.Response
 import org.schabi.newpipe.extractor.exceptions.ReCaptchaException
 import org.schabi.newpipe.extractor.playlist.PlaylistInfo
+import org.schabi.newpipe.extractor.playlist.PlaylistInfoItem
+import org.schabi.newpipe.extractor.services.youtube.linkHandler.YoutubeSearchQueryHandlerFactory
 import org.schabi.newpipe.extractor.stream.AudioStream
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import org.schabi.newpipe.extractor.stream.StreamInfoItem
@@ -74,4 +79,23 @@ object AudioResolver {
     }
 
     private fun AudioStream.isM4a() = format?.suffix == "m4a"
+}
+
+/** YouTube Music playlist search (community and featured playlists), no account needed. */
+object NewPipePlaylistSearch : PlaylistSearch {
+    override fun search(query: String): List<FoundPlaylist> {
+        val filters = listOf(YoutubeSearchQueryHandlerFactory.MUSIC_PLAYLISTS)
+        val extractor = ServiceList.YouTube.getSearchExtractor(query, filters, "")
+        extractor.fetchPage()
+        return extractor.initialPage.items.filterIsInstance<PlaylistInfoItem>().map {
+            val cover = it.thumbnails.maxByOrNull { thumbnail -> thumbnail.height }?.url
+            FoundPlaylist(it.url, it.name, it.uploaderName.orEmpty(), it.streamCount, cover)
+        }
+    }
+
+    /** Real name and size of a playlist whose link was pasted. */
+    fun describe(choice: PlaylistChoice): PlaylistChoice {
+        val info = PlaylistInfo.getInfo(ServiceList.YouTube, choice.id.url)
+        return choice.copy(title = info.name, author = info.uploaderName.orEmpty(), trackCount = info.streamCount)
+    }
 }

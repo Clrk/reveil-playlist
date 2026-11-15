@@ -38,6 +38,7 @@ private data class AlarmRecord(
     val enabled: Boolean,
     val snoozeMinutes: Int,
     val playlistId: String?,
+    val playlistTitle: String?,
     val snoozedUntil: Long?,
 ) {
     fun toAlarm() = Alarm(
@@ -48,6 +49,7 @@ private data class AlarmRecord(
         enabled = enabled,
         snoozeMinutes = snoozeMinutes,
         playlistId = playlistId,
+        playlistTitle = playlistTitle,
         snoozedUntil = snoozedUntil?.let { Instant.ofEpochMilli(it) },
     )
 
@@ -62,6 +64,7 @@ private data class AlarmRecord(
             enabled = alarm.enabled,
             snoozeMinutes = alarm.snoozeMinutes,
             playlistId = alarm.playlistId,
+            playlistTitle = alarm.playlistTitle,
             snoozedUntil = alarm.snoozedUntil?.toEpochMilli(),
         )
     }

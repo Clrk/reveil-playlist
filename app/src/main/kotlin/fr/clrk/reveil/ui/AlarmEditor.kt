@@ -2,13 +2,17 @@ package fr.clrk.reveil.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -23,6 +27,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import fr.clrk.reveil.core.Alarm
+import fr.clrk.reveil.core.PlaylistChoice
+import fr.clrk.reveil.core.PlaylistId
 import fr.clrk.reveil.core.PlaylistLink
 import java.time.DayOfWeek
 import java.time.LocalTime
@@ -52,14 +58,13 @@ private const val SNOOZE_CHOICES = "5,9,10,15,20"
 private class EditorState(private val initial: Alarm, sharedLink: String, val time: TimePickerState) {
     var days by mutableStateOf(initial.days)
     var label by mutableStateOf(initial.label)
-    var link by mutableStateOf(sharedLink.ifBlank { initial.playlistId.orEmpty() })
+    var playlist by mutableStateOf(initialChoice(initial, sharedLink))
+    var picking by mutableStateOf(false)
     var snooze by mutableStateOf(initial.snoozeMinutes)
-    val playlist get() = PlaylistLink.parse(link)
-    val linkError get() = link.isNotBlank() && playlist == null
 
     fun alarm() = initial.copy(
         time = LocalTime.of(time.hour, time.minute), days = days, label = label,
-        playlistId = playlist?.value, snoozeMinutes = snooze, enabled = true,
+        playlistId = playlist?.id?.value, playlistTitle = playlist?.title, snoozeMinutes = snooze, enabled = true,
     )
 }
 
@@ -70,10 +75,13 @@ fun AlarmEditor(initial: Alarm, sharedLink: String, actions: EditorActions) {
     val state = remember(initial) { EditorState(initial, sharedLink, time) }
     AlertDialog(
         onDismissRequest = actions::close,
-        confirmButton = { TextButton(enabled = !state.linkError, onClick = { actions.save(state.alarm()) }) { Text("Enregistrer") } },
+        confirmButton = { TextButton(onClick = { actions.save(state.alarm()) }) { Text("Enregistrer") } },
         dismissButton = { TextButton(onClick = { actions.delete(initial) }) { Text("Supprimer") } },
         text = { EditorForm(state, actions) },
     )
+    if (state.picking) {
+        PlaylistPicker(onPick = { state.playlist = it; state.picking = false }, onClose = { state.picking = false })
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -83,16 +91,33 @@ private fun EditorForm(state: EditorState, actions: EditorActions) {
         TimeInput(state.time)
         DayChips(state.days) { state.days = it }
         OutlinedTextField(state.label, { state.label = it }, label = { Text("Nom") }, singleLine = true)
-        OutlinedTextField(
-            state.link, { state.link = it }, label = { Text("Lien de playlist YouTube Music") },
-            isError = state.linkError, supportingText = { if (state.linkError) Text("Lien de playlist non reconnu") },
-        )
+        PlaylistField(state)
         SnoozeChips(state)
         Row {
-            TextButton(enabled = !state.linkError, onClick = { actions.test(state.alarm()) }) { Text("Tester") }
-            state.playlist?.let { TextButton(onClick = { actions.prefetch(it.value) }) { Text("Télécharger maintenant") } }
+            TextButton(onClick = { actions.test(state.alarm()) }) { Text("Tester") }
+            state.playlist?.let { TextButton(onClick = { actions.prefetch(it.id.value) }) { Text("Télécharger maintenant") } }
         }
     }
+}
+
+@Composable
+private fun PlaylistField(state: EditorState) {
+    Text("Musique du réveil")
+    OutlinedCard(Modifier.fillMaxWidth().clickable { state.picking = true }) {
+        Column(Modifier.padding(horizontal = 12.dp)) {
+            state.playlist?.let { PlaylistRow(it) } ?: Text("Sonnerie du téléphone", Modifier.padding(vertical = 16.dp))
+        }
+    }
+    Row {
+        TextButton(onClick = { state.picking = true }) { Text(if (state.playlist == null) "Choisir une playlist" else "Changer") }
+        if (state.playlist != null) TextButton(onClick = { state.playlist = null }) { Text("Retirer") }
+    }
+}
+
+private fun initialChoice(alarm: Alarm, sharedLink: String): PlaylistChoice? {
+    PlaylistLink.parse(sharedLink)?.let { return PlaylistChoice(it, "Playlist partagée") }
+    val id = alarm.playlistId?.let(::PlaylistId) ?: return null
+    return PlaylistChoice(id, alarm.playlistTitle ?: "Playlist ${id.value}")
 }
 
 @Composable
