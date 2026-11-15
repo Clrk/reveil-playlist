@@ -18,7 +18,7 @@ fun interface PlaylistSource {
 
 /** Turns whatever the user pasted (share link, browse link, bare id) into a [PlaylistId]. */
 object PlaylistLink {
-    private val idPattern = Regex("^(PL|OLAK5uy_|RD|UU|FL)[A-Za-z0-9_-]+$")
+    private val idPattern = Regex("^((PL|OLAK5uy_|RD|UU|FL)[A-Za-z0-9_-]+|LM)$")
     private val hosts = setOf("youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com")
     private const val BROWSE_PREFIX = "/browse/VL"
 

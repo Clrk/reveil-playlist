@@ -1,0 +1,7 @@
+{"contents":{"twoColumnBrowseResultsRenderer":{"secondaryContents":{"sectionListRenderer":{"contents":[{"musicPlaylistShelfRenderer":{"contents":[
+{"musicResponsiveListItemRenderer":{"playlistItemData":{"videoId":"vid0000001"},"flexColumns":[{"musicResponsiveListItemFlexColumnRenderer":{"text":{"runs":[{"text":"Clair de lune"}]}}},{"musicResponsiveListItemFlexColumnRenderer":{"text":{"runs":[{"text":"Debussy"}]}}}]}},
+{"musicResponsiveListItemRenderer":{"flexColumns":[{"musicResponsiveListItemFlexColumnRenderer":{"text":{"runs":[{"text":"Morceau indisponible"}]}}}]}},
+{"musicResponsiveListItemRenderer":{"playlistItemData":{"videoId":"vid0000002"},"flexColumns":[{"musicResponsiveListItemFlexColumnRenderer":{"text":{"runs":[{"text":"Gymnopédie No.1"}]}}}]}},
+{"musicResponsiveListItemRenderer":{"playlistItemData":{"videoId":"vid0000003"}}},
+{"continuationItemRenderer":{"continuationEndpoint":{"continuationCommand":{"token":"suite"}}}}
+]}}]}}}}}

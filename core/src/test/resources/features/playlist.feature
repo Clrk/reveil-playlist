@@ -7,6 +7,7 @@ Fonctionnalité: Choisir une playlist YouTube Music par son lien
     Et le lien "https://music.youtube.com/browse/VLPLabc123" désigne la playlist "PLabc123"
     Et le lien "https://m.youtube.com/watch?v=dQw4w9WgXcQ&list=RDCLAKabc" désigne la playlist "RDCLAKabc"
     Et le lien "  PLabc123  " désigne la playlist "PLabc123"
+    Et le lien "https://music.youtube.com/playlist?list=LM" désigne la playlist "LM"
 
   Scénario: Les liens qui ne sont pas des playlists sont refusés
     Alors le lien "https://example.com/playlist?list=PLabc123" n'est pas une playlist

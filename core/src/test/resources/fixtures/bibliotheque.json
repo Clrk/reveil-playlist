@@ -1,0 +1,7 @@
+{"contents":{"singleColumnBrowseResultsRenderer":{"tabs":[{"tabRenderer":{"content":{"sectionListRenderer":{"contents":[{"gridRenderer":{"items":[
+{"musicTwoRowItemRenderer":{"title":{"runs":[{"text":"Nouvelle playlist"}]},"navigationEndpoint":{"createPlaylistEndpoint":{}}}},
+{"musicTwoRowItemRenderer":{"title":{"runs":[{"text":"Titres J'aime"}]},"subtitle":{"runs":[{"text":"Playlist automatique"}]},"navigationEndpoint":{"browseEndpoint":{"browseId":"VLLM"}},"thumbnailRenderer":{"musicThumbnailRenderer":{"thumbnail":{"thumbnails":[{"url":"https://lh3.example/like-small"},{"url":"https://lh3.example/like-big"}]}}}}},
+{"musicTwoRowItemRenderer":{"title":{"runs":[{"text":"Réveil du lundi"}]},"subtitle":{"runs":[{"text":"Thibault"},{"text":" • "},{"text":"12 titres"}]},"navigationEndpoint":{"browseEndpoint":{"browseId":"VLPLprive123"}}}},
+{"musicTwoRowItemRenderer":{"title":{"runs":[{"text":"Un artiste suivi"}]},"navigationEndpoint":{"browseEndpoint":{"browseId":"UCartiste"}}}},
+{"musicTwoRowItemRenderer":{"title":{"runs":[{"text":"Road trip"}]},"navigationEndpoint":{"browseEndpoint":{"browseId":"VLPLroad"}},"thumbnailRenderer":{"musicThumbnailRenderer":{"thumbnail":{"thumbnails":[]}}}}}
+]}}]}}}}]}}}
