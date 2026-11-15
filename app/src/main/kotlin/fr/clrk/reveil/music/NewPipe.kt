@@ -23,7 +23,10 @@ class NewPipeDownloader private constructor(val client: OkHttpClient) : Download
     override fun execute(request: Request): Response {
         val body = request.dataToSend()?.toRequestBody()
         val builder = Builder().url(request.url()).method(request.httpMethod(), body).header("User-Agent", USER_AGENT)
-        request.headers().forEach { (name, values) -> values.forEach { builder.addHeader(name, it) } }
+        request.headers().forEach { (name, values) ->
+            builder.removeHeader(name)
+            values.forEach { builder.addHeader(name, it) }
+        }
         client.newCall(builder.build()).execute().use { response ->
             if (response.code == TOO_MANY_REQUESTS) throw ReCaptchaException("reCaptcha", request.url())
             val headers = response.headers.toMultimap()
