@@ -1,0 +1,25 @@
+complexity:
+  CyclomaticComplexMethod:
+    active: true
+    threshold: 6
+  LongMethod:
+    threshold: 25
+  LongParameterList:
+    ignoreDefaultParameters: true
+  TooManyFunctions:
+    thresholdInFiles: 20
+    thresholdInClasses: 15
+style:
+  MagicNumber:
+    excludes: ['**/test/**', '**/androidTest/**']
+    ignorePropertyDeclaration: true
+    ignoreCompanionObjectPropertyDeclaration: true
+  ReturnCount:
+    max: 3
+  MaxLineLength:
+    maxLineLength: 140
+  DestructuringDeclarationWithTooManyEntries:
+    maxDestructuringEntries: 4
+naming:
+  FunctionNaming:
+    ignoreAnnotated: ['Composable', 'Test', 'TestFactory']

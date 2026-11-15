@@ -1,0 +1,16 @@
+#!/bin/sh
+# Pre-commit: rejects text files over 5,000 tokens (bytes / 4), then runs linters, tests and the coverage gate.
+set -e
+MAX_TOKENS=5000
+status=0
+for file in $(git diff --cached --name-only --diff-filter=ACM); do
+  case "$file" in *.jar|*.png|*.webp|*.apk|gradlew|gradlew.bat) continue ;; esac
+  bytes=$(git cat-file -s ":$file")
+  tokens=$((bytes / 4))
+  if [ "$tokens" -gt "$MAX_TOKENS" ]; then
+    echo "✗ $file : ~$tokens tokens (max $MAX_TOKENS). Découpe le fichier." >&2
+    status=1
+  fi
+done
+[ "$status" -eq 0 ] || exit 1
+./gradlew -q detekt :core:test :core:koverVerify :app:lintDebug
