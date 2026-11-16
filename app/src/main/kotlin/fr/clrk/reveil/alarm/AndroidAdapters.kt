@@ -26,6 +26,7 @@ class AndroidAlarmScheduler(private val context: Context) : AlarmScheduler {
         val intent = Intent(context, AlarmReceiver::class.java)
             .setAction("fr.clrk.reveil.${key.kind}.${key.alarmId}")
             .putExtra(AlarmReceiver.EXTRA_ID, key.alarmId)
+            .putExtra(AlarmReceiver.EXTRA_KIND, key.kind.name)
         return PendingIntent.getBroadcast(context, 0, intent, FLAGS)
     }
 

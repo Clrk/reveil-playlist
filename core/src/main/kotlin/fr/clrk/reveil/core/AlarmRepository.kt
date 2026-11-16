@@ -40,6 +40,9 @@ private data class AlarmRecord(
     val playlistId: String?,
     val playlistTitle: String?,
     val snoozedUntil: Long?,
+    val maxSnoozes: Int = Alarm.DEFAULT_MAX_SNOOZES,
+    val snoozeCount: Int = 0,
+    val rampSeconds: Int = Alarm.DEFAULT_RAMP_SECONDS,
 ) {
     fun toAlarm() = Alarm(
         id = id,
@@ -51,10 +54,14 @@ private data class AlarmRecord(
         playlistId = playlistId,
         playlistTitle = playlistTitle,
         snoozedUntil = snoozedUntil?.let { Instant.ofEpochMilli(it) },
+        maxSnoozes = maxSnoozes.takeIf { it != UNLIMITED },
+        snoozeCount = snoozeCount,
+        rampSeconds = rampSeconds,
     )
 
     companion object {
         private const val MINUTES_PER_HOUR = 60
+        private const val UNLIMITED = -1
 
         fun of(alarm: Alarm) = AlarmRecord(
             id = alarm.id,
@@ -66,6 +73,9 @@ private data class AlarmRecord(
             playlistId = alarm.playlistId,
             playlistTitle = alarm.playlistTitle,
             snoozedUntil = alarm.snoozedUntil?.toEpochMilli(),
+            maxSnoozes = alarm.maxSnoozes ?: UNLIMITED,
+            snoozeCount = alarm.snoozeCount,
+            rampSeconds = alarm.rampSeconds,
         )
     }
 }

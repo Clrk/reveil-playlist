@@ -14,7 +14,9 @@ private const val REPEATED = "$ALARM à \"([^\"]+)\" répétée \"([^\"]+)\""
 
 fun StepRegistry<AlarmWorld>.alarmSteps() {
     creationSteps()
+    settingsSteps()
     lifecycleSteps()
+    snoozeSteps()
     phoneSteps()
     assertionSteps()
 }
@@ -35,6 +37,28 @@ private fun StepRegistry<AlarmWorld>.creationSteps() {
     step(PONCTUAL) { (label, time) -> remember(service.create(Formats.time(time), emptySet(), label)) }
 }
 
+private fun StepRegistry<AlarmWorld>.settingsSteps() {
+    step("$REPEATED avec \"(\\d+)\" snoozes au maximum") { (label, time, days, max) ->
+        remember(service.update(created(label, time, days).copy(maxSnoozes = max.toInt())))
+    }
+    step("$REPEATED sans limite de snoozes") { (label, time, days) ->
+        remember(service.update(created(label, time, days).copy(maxSnoozes = null)))
+    }
+    step("$REPEATED avec \"(\\d+)\" snoozes au maximum et une montée de \"(\\d+)\" secondes") { values ->
+        val alarm = created(values[0], values[1], values[2])
+        remember(service.update(alarm.copy(maxSnoozes = values[3].toInt(), rampSeconds = values[4].toInt())))
+    }
+    step("$ALARM enregistrée par la version 0.3.0") { (label) ->
+        disk.content = OLD_RECORD.replace("LABEL", label)
+        remember(service.list().single { it.label == label })
+    }
+}
+
+private const val OLD_RECORD = """[{"id":"ancienne","minuteOfDay":450,"days":[1],"label":"LABEL","enabled":true,"snoozeMinutes":10}]"""
+
+private fun AlarmWorld.created(label: String, time: String, days: String) =
+    service.create(Formats.time(time), Formats.days(days), label)
+
 private fun StepRegistry<AlarmWorld>.lifecycleSteps() {
     step("je désactive $ALARM") { (label) -> service.setEnabled(alarm(label).id, false) }
     step("je réactive $ALARM") { (label) -> service.setEnabled(alarm(label).id, true) }
@@ -46,14 +70,27 @@ private fun StepRegistry<AlarmWorld>.lifecycleSteps() {
         now = Formats.moment(moment)
         service.onRing(alarm(label).id)
     }
+    step("j'arrête $ALARM") { (label) -> service.dismiss(alarm(label).id) }
+    step("l'alarme oubliée \"([^\"]+)\" sonne, est repoussée, arrêtée puis réactivée") { (label) ->
+        service.onRing(id(label))
+        service.snooze(id(label))
+        service.dismiss(id(label))
+        service.setEnabled(id(label), true)
+    }
+}
+
+private fun StepRegistry<AlarmWorld>.snoozeSteps() {
     step("je repousse $ALARM à \"([^\"]+)\"") { (label, time) ->
         now = now.with(Formats.time(time))
         service.snooze(alarm(label).id)
     }
-    step("j'arrête $ALARM") { (label) -> service.dismiss(alarm(label).id) }
-    step("l'alarme oubliée \"([^\"]+)\" sonne, est repoussée, arrêtée puis réactivée") { (label) ->
-        listOf(service::onRing, service::snooze, service::dismiss).forEach { it(id(label)) }
-        service.setEnabled(id(label), true)
+    step("le snooze de $ALARM sonne le \"([^\"]+)\"") { (label, moment) ->
+        now = Formats.moment(moment)
+        service.onRing(alarm(label).id, TriggerKey.Kind.SNOOZE)
+    }
+    step("je ne peux plus repousser $ALARM à \"([^\"]+)\"") { (label, time) ->
+        now = now.with(Formats.time(time))
+        assertFalse(service.snooze(alarm(label).id))
     }
 }
 
@@ -96,6 +133,13 @@ private fun StepRegistry<AlarmWorld>.assertionSteps() {
 private fun StepRegistry<AlarmWorld>.snoozeAssertions() {
     step("$ALARM sonnera à nouveau le \"([^\"]+)\"") { (label, moment) ->
         assertEquals(moment, Formats.show(planned(label, TriggerKey.Kind.SNOOZE)?.atZone(Formats.zone)))
+    }
+    step("il reste \"(\\d+)\" snoozes à $ALARM") { (count, label) ->
+        assertEquals(count.toInt(), alarm(label).snoozesLeft)
+    }
+    step("$ALARM n'a pas de limite de snoozes") { (label) -> assertNull(alarm(label).snoozesLeft) }
+    step("le volume de $ALARM monte sur \"(\\d+)\" secondes") { (label, seconds) ->
+        assertEquals(seconds.toInt(), alarm(label).rampSeconds)
     }
     step("$ALARM n'a pas de snooze en attente") { (label) ->
         assertNull(phone.planned[TriggerKey(id(label), TriggerKey.Kind.SNOOZE)])

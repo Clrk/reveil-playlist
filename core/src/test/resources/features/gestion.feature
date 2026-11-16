@@ -82,3 +82,19 @@ Fonctionnalité: Gestion des alarmes
     Quand l'alarme oubliée "Boulot" sonne, est repoussée, arrêtée puis réactivée
     Alors l'alarme "Boulot" n'est pas programmée
     Et la liste des alarmes est ""
+
+  Scénario: Les réglages de snooze et de volume sont conservés
+    Soit l'alarme "Boulot" à "07:30" répétée "lun" avec "5" snoozes au maximum et une montée de "120" secondes
+    Quand l'application redémarre
+    Alors il reste "5" snoozes à l'alarme "Boulot"
+    Et le volume de l'alarme "Boulot" monte sur "120" secondes
+
+  Scénario: Une alarme enregistrée par une ancienne version prend les réglages par défaut
+    Soit l'alarme "Ancienne" enregistrée par la version 0.3.0
+    Alors il reste "3" snoozes à l'alarme "Ancienne"
+    Et le volume de l'alarme "Ancienne" monte sur "60" secondes
+
+  Scénario: Une alarme sans limite de snoozes le reste après redémarrage
+    Soit l'alarme "Boulot" à "07:30" répétée "lun" sans limite de snoozes
+    Quand l'application redémarre
+    Alors l'alarme "Boulot" n'a pas de limite de snoozes

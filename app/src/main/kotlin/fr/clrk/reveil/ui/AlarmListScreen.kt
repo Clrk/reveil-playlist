@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -63,9 +64,7 @@ fun AlarmListScreen(ui: ListUi, events: ListEvents) {
 private fun Header(ui: ListUi) {
     Column {
         Text(ui.next, style = MaterialTheme.typography.titleMedium)
-        ui.warnings.forEach { (text, fix) ->
-            TextButton(onClick = fix) { Text("⚠ $text", color = MaterialTheme.colorScheme.error) }
-        }
+        ui.warnings.forEach { (text, fix) -> WarningCard(text, fix) }
     }
 }
 
@@ -81,6 +80,22 @@ private fun AlarmCard(alarm: Alarm, events: ListEvents) {
                 }
             }
             Switch(checked = alarm.enabled, onCheckedChange = { events.toggle(alarm, it) })
+        }
+    }
+}
+
+@Composable
+private fun WarningCard(text: String, fix: () -> Unit) {
+    Card(
+        Modifier.fillMaxWidth().padding(top = 12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer,
+            contentColor = MaterialTheme.colorScheme.onErrorContainer,
+        ),
+    ) {
+        Row(Modifier.padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(text, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+            TextButton(onClick = fix) { Text("Autoriser") }
         }
     }
 }

@@ -97,5 +97,19 @@ class ScreensTest {
     fun editionSansPlaylist() = shot { AlarmEditor(weekend, "", noActions) }
 
     @Test
-    fun sonnerie() = shot { RingScreen(RingState.Ui("Boulot", "Norah Jones - Come Away With Me"), "07:00") {} }
+    fun sonnerie() = paparazzi.snapshot {
+        RingScreen(RingState.Ui("Boulot", "Norah Jones - Come Away With Me", "10 min · encore 3 fois"), "07:00") {}
+    }
+
+    @Test
+    fun sonnerieSansSnooze() = paparazzi.snapshot {
+        RingScreen(RingState.Ui("Boulot", "Norah Jones - Come Away With Me", snooze = null), "07:20") {}
+    }
+
+    @Test
+    fun listeAvertissement() = shot {
+        val warning = "L'économie de batterie peut empêcher de préparer les musiques hors ligne" to {}
+        val ui = ListUi(listOf(boulot, weekend), "Prochain réveil : lun. 07:00 (dans 8 h 12 min) Boulot", listOf(warning))
+        AlarmListScreen(ui, noListEvents)
+    }
 }

@@ -1,10 +1,12 @@
 package fr.clrk.reveil.ui
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.NotificationManager
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.os.PowerManager
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -100,8 +102,16 @@ class MainActivity : ComponentActivity() {
             warnings += "Autoriser l'affichage plein écran sur l'écran verrouillé" to
                 { openSettings(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT) }
         }
+        if (!getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(packageName)) {
+            warnings += "L'économie de batterie peut empêcher de préparer les musiques hors ligne" to ::askBatteryExemption
+        }
         return warnings
     }
+
+    /** Alarm clocks are an accepted use of this request: without it, the overnight download can be frozen. */
+    @SuppressLint("BatteryLife")
+    private fun askBatteryExemption() =
+        startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, "package:$packageName".toUri()))
 
     private fun openSettings(action: String) {
         val intent = Intent(action).setData("package:$packageName".toUri())

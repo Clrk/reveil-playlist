@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import androidx.core.content.edit
 import androidx.core.net.toUri
+import fr.clrk.reveil.core.Alarm
 import fr.clrk.reveil.core.FallbackPlaylistSource
 import fr.clrk.reveil.core.PlaylistId
 import fr.clrk.reveil.core.PlaylistSource
@@ -52,16 +53,28 @@ class RingMusic(private val context: Context, playlistId: String?) {
 
 /** What the lock-screen activity displays while ringing. */
 object RingState {
-    data class Ui(val label: String, val nowPlaying: String)
+    /** [snooze] describes the snooze button, null once no snooze is left. */
+    data class Ui(val label: String, val nowPlaying: String, val snooze: String? = null, val cover: String? = null)
 
     val ui = kotlinx.coroutines.flow.MutableStateFlow<Ui?>(null)
 
-    fun show(label: String) { ui.value = Ui(label, "") }
+    fun show(alarm: Alarm?) {
+        ui.value = Ui(alarm?.label.orEmpty(), "", alarm?.let(::snoozeText) ?: Alarm.DEFAULT_SNOOZE_MINUTES.let { "$it min" })
+    }
 
     fun playing(source: WakeSource) {
-        val title = (source as? WakeSource.Music)?.track?.title ?: "Sonnerie de secours"
-        ui.value = ui.value?.copy(nowPlaying = title)
+        val track = (source as? WakeSource.Music)?.track
+        ui.value = ui.value?.copy(nowPlaying = track?.title ?: "Sonnerie de secours", cover = track?.let { cover(it.id) })
     }
 
     fun hide() { ui.value = null }
+
+    private fun cover(videoId: String) = "https://i.ytimg.com/vi/$videoId/hqdefault.jpg"
+
+    private fun snoozeText(alarm: Alarm): String? = when (val left = alarm.snoozesLeft) {
+        0 -> null
+        null -> "${alarm.snoozeMinutes} min"
+        1 -> "${alarm.snoozeMinutes} min · dernier snooze"
+        else -> "${alarm.snoozeMinutes} min · encore $left fois"
+    }
 }

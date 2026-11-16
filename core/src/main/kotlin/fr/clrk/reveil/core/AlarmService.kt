@@ -45,20 +45,26 @@ class AlarmService(
         .mapNotNull { alarm -> NextTrigger.after(alarm, clock())?.let { alarm to it } }
         .minByOrNull { it.second }
 
-    /** Called when the ring trigger fires: one-shot alarms switch off, repeating ones move on. */
-    fun onRing(id: String) {
+    /**
+     * Called when a trigger fires: one-shot alarms switch off, repeating ones move on.
+     * A new wake-up (ring) restores every snooze; a snooze ringing keeps the count.
+     */
+    fun onRing(id: String, kind: TriggerKey.Kind = TriggerKey.Kind.RING) {
         val alarm = find(id) ?: return
-        update(alarm.copy(enabled = alarm.repeating, snoozedUntil = null))
+        val count = if (kind == TriggerKey.Kind.RING) 0 else alarm.snoozeCount
+        update(alarm.copy(enabled = alarm.repeating, snoozedUntil = null, snoozeCount = count))
     }
 
-    fun snooze(id: String) {
-        val alarm = find(id) ?: return
+    /** Postpones the ringing alarm; returns false once no snooze is left. */
+    fun snooze(id: String): Boolean {
+        val alarm = find(id)?.takeIf { it.snoozesLeft != 0 } ?: return false
         val until = clock().plusMinutes(alarm.snoozeMinutes.toLong()).toInstant()
-        update(alarm.copy(snoozedUntil = until))
+        update(alarm.copy(snoozedUntil = until, snoozeCount = alarm.snoozeCount + 1))
+        return true
     }
 
     fun dismiss(id: String) {
-        find(id)?.let { update(it.copy(snoozedUntil = null)) }
+        find(id)?.let { update(it.copy(snoozedUntil = null, snoozeCount = 0)) }
     }
 
     /** Restores every trigger, e.g. after the phone rebooted. */

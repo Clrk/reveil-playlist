@@ -21,6 +21,8 @@ import androidx.media3.exoplayer.ExoPlayer
 import fr.clrk.reveil.R
 import fr.clrk.reveil.ReveilApp
 import fr.clrk.reveil.app
+import fr.clrk.reveil.core.Alarm
+import fr.clrk.reveil.core.VolumeRamp
 import fr.clrk.reveil.core.WakeSession
 import fr.clrk.reveil.core.WakeSource
 import fr.clrk.reveil.ui.RingActivity
@@ -57,7 +59,7 @@ class RingService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val id = intent?.getStringExtra(AlarmReceiver.EXTRA_ID) ?: alarmId
         when (intent?.action) {
-            ACTION_SNOOZE -> finish { app.alarms.snooze(it) }
+            ACTION_SNOOZE -> snooze()
             ACTION_DISMISS -> finish { app.alarms.dismiss(it) }
             else -> id?.let(::ring)
         }
@@ -67,9 +69,12 @@ class RingService : Service() {
     private fun ring(id: String) {
         alarmId = id
         val alarm = app.alarms.find(id)
-        RingState.show(alarm?.label.orEmpty())
-        ServiceCompat.startForeground(this, NOTIFICATION, notification(alarm?.label), ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
+        RingState.show(alarm)
+        val canSnooze = alarm?.snoozesLeft != 0
+        val type = ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+        ServiceCompat.startForeground(this, NOTIFICATION, notification(alarm?.label, canSnooze), type)
         wakeLock.acquire(MAX_RING_MS)
+        scope.rampVolume(player, VolumeRamp(alarm?.rampSeconds ?: Alarm.DEFAULT_RAMP_SECONDS))
         scope.launch {
             val ringMusic = RingMusic(this@RingService, alarm?.playlistId)
             music = ringMusic
@@ -80,6 +85,12 @@ class RingService : Service() {
             delay(MAX_RING_MS)
             finish { app.alarms.dismiss(it) }
         }
+    }
+
+    /** Snoozing is refused once the limit is reached: the alarm keeps ringing. */
+    private fun snooze() {
+        val id = alarmId ?: return
+        if (app.alarms.snooze(id)) finish { }
     }
 
     private fun playCurrent() {
@@ -168,7 +179,7 @@ class RingService : Service() {
         super.onDestroy()
     }
 
-    private fun notification(label: String?): Notification {
+    private fun notification(label: String?, canSnooze: Boolean): Notification {
         val fullScreen = PendingIntent.getActivity(this, 0, Intent(this, RingActivity::class.java), FLAGS)
         return NotificationCompat.Builder(this, ReveilApp.CHANNEL_RING)
             .setSmallIcon(R.drawable.ic_alarm)
@@ -177,7 +188,7 @@ class RingService : Service() {
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setOngoing(true)
             .setFullScreenIntent(fullScreen, true)
-            .addAction(0, "Snooze", action(ACTION_SNOOZE))
+            .apply { if (canSnooze) addAction(0, "Snooze", action(ACTION_SNOOZE)) }
             .addAction(0, "Arrêter", action(ACTION_DISMISS))
             .build()
     }

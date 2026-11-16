@@ -52,7 +52,9 @@ object Days {
     }
 }
 
-private const val SNOOZE_CHOICES = "5,9,10,15,20"
+private val SNOOZE_CHOICES = listOf(5, 9, 10, 15, 20).map { it to "$it" }
+private val MAX_SNOOZE_CHOICES = listOf(1, 2, 3, 5).map { it to "$it" } + (null to "∞")
+private val RAMP_CHOICES = listOf(0 to "Non", 30 to "30 s", 60 to "1 min", 120 to "2 min", 300 to "5 min")
 
 @OptIn(ExperimentalMaterial3Api::class)
 private class EditorState(private val initial: Alarm, sharedLink: String, val time: TimePickerState) {
@@ -61,10 +63,13 @@ private class EditorState(private val initial: Alarm, sharedLink: String, val ti
     var playlist by mutableStateOf(initialChoice(initial, sharedLink))
     var picking by mutableStateOf(false)
     var snooze by mutableStateOf(initial.snoozeMinutes)
+    var maxSnoozes by mutableStateOf(initial.maxSnoozes)
+    var ramp by mutableStateOf(initial.rampSeconds)
 
     fun alarm() = initial.copy(
         time = LocalTime.of(time.hour, time.minute), days = days, label = label,
         playlistId = playlist?.id?.value, playlistTitle = playlist?.title, snoozeMinutes = snooze, enabled = true,
+        maxSnoozes = maxSnoozes, rampSeconds = ramp,
     )
 }
 
@@ -92,7 +97,9 @@ private fun EditorForm(state: EditorState, actions: EditorActions) {
         DayChips(state.days) { state.days = it }
         OutlinedTextField(state.label, { state.label = it }, label = { Text("Nom") }, singleLine = true)
         PlaylistField(state)
-        SnoozeChips(state)
+        Choices("Montée du volume", RAMP_CHOICES, state.ramp) { state.ramp = it }
+        Choices("Snooze (minutes)", SNOOZE_CHOICES, state.snooze) { state.snooze = it }
+        Choices("Snoozes au maximum", MAX_SNOOZE_CHOICES, state.maxSnoozes) { state.maxSnoozes = it }
         Row {
             TextButton(onClick = { actions.test(state.alarm()) }) { Text("Tester") }
             state.playlist?.let { TextButton(onClick = { actions.prefetch(it.id.value) }) { Text("Télécharger maintenant") } }
@@ -121,12 +128,10 @@ private fun initialChoice(alarm: Alarm, sharedLink: String): PlaylistChoice? {
 }
 
 @Composable
-private fun SnoozeChips(state: EditorState) {
-    Text("Snooze (minutes)")
+private fun <T> Choices(title: String, choices: List<Pair<T, String>>, selected: T, onPick: (T) -> Unit) {
+    Text(title)
     FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        SNOOZE_CHOICES.split(",").map(String::toInt).forEach { minutes ->
-            FilterChip(state.snooze == minutes, { state.snooze = minutes }, label = { Text("$minutes") })
-        }
+        choices.forEach { (value, label) -> FilterChip(selected == value, { onPick(value) }, label = { Text(label) }) }
     }
 }
 
