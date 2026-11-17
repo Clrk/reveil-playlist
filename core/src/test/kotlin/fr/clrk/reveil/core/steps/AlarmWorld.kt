@@ -6,6 +6,7 @@ import fr.clrk.reveil.core.AlarmScheduler
 import fr.clrk.reveil.core.AlarmService
 import fr.clrk.reveil.core.TextStore
 import fr.clrk.reveil.core.TriggerKey
+import fr.clrk.reveil.core.WakeInfo
 import java.time.Instant
 import java.time.ZonedDateTime
 
@@ -15,6 +16,7 @@ class AlarmWorld {
     val phone = FakePhoneScheduler()
     val disk = MemoryStore()
     var cachedTracks = 0
+    var download: WakeInfo.Download = WakeInfo.Download.Waiting
     var service = newService()
 
     fun newService() = AlarmService(AlarmRepository(disk), phone) { now }

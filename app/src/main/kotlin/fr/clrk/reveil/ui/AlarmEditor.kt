@@ -95,12 +95,13 @@ fun AlarmEditor(
     actions: EditorActions,
     existing: Boolean = false,
     now: () -> ZonedDateTime = ZonedDateTime::now,
+    music: (String) -> String? = { null },
 ) {
     val time = rememberTimePickerState(initial.time.hour, initial.time.minute, is24Hour = true)
     val state = remember(initial) { EditorState(initial, sharedLink, time) }
     Dialog(onDismissRequest = actions::close, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         EditorScaffold(if (existing) "Modifier le réveil" else "Nouveau réveil", state, actions) {
-            EditorForm(state, actions, now)
+            EditorForm(state, actions, now, music)
             if (existing) SavedAlarmActions(initial, actions)
         }
     }
@@ -130,21 +131,18 @@ private fun EditorScaffold(title: String, state: EditorState, actions: EditorAct
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun EditorForm(state: EditorState, actions: EditorActions, now: () -> ZonedDateTime) {
+private fun EditorForm(state: EditorState, actions: EditorActions, now: () -> ZonedDateTime, music: (String) -> String?) {
     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
         TimeInput(state.time)
         Text(WakeInfo.announce(state.alarm(), now()).orEmpty(), color = MaterialTheme.colorScheme.primary)
     }
     DayChips(state.days) { state.days = it }
     OutlinedTextField(state.label, { state.label = it }, Modifier.fillMaxWidth(), label = { Text("Nom") }, singleLine = true)
-    PlaylistField(state)
+    PlaylistField(state, music, actions)
     Choices("Montée du volume", RAMP_CHOICES, state.ramp) { state.ramp = it }
     Choices("Snooze (minutes)", SNOOZE_CHOICES, state.snooze) { state.snooze = it }
     Choices("Snoozes au maximum", MAX_SNOOZE_CHOICES, state.maxSnoozes) { state.maxSnoozes = it }
-    Row {
-        TextButton(onClick = { actions.test(state.alarm()) }) { Text("Tester") }
-        state.playlist?.let { TextButton(onClick = { actions.prefetch(it.id.value) }) { Text("Télécharger maintenant") } }
-    }
+    TextButton(onClick = { actions.test(state.alarm()) }) { Text("Tester le réveil") }
 }
 
 @Composable
@@ -157,16 +155,32 @@ private fun SavedAlarmActions(alarm: Alarm, actions: EditorActions) {
 }
 
 @Composable
-private fun PlaylistField(state: EditorState) {
+private fun PlaylistField(state: EditorState, music: (String) -> String?, actions: EditorActions) {
     Text("Musique du réveil")
     OutlinedCard(Modifier.fillMaxWidth().clickable { state.picking = true }) {
         Column(Modifier.padding(horizontal = 12.dp)) {
-            state.playlist?.let { PlaylistRow(it) } ?: Text("Sonnerie du téléphone", Modifier.padding(vertical = 16.dp))
+            val choice = state.playlist
+            if (choice == null) {
+                Text("Sonnerie du téléphone", Modifier.padding(vertical = 16.dp))
+            } else {
+                MusicSummary(choice, music(choice.id.value))
+            }
         }
     }
-    Row {
+    FlowRow {
         TextButton(onClick = { state.picking = true }) { Text(if (state.playlist == null) "Choisir une playlist" else "Changer") }
-        if (state.playlist != null) TextButton(onClick = { state.playlist = null }) { Text("Retirer") }
+        state.playlist?.let { choice ->
+            TextButton(onClick = { state.playlist = null }) { Text("Retirer") }
+            TextButton(onClick = { actions.prefetch(choice.id.value) }) { Text("Télécharger maintenant") }
+        }
+    }
+}
+
+@Composable
+private fun MusicSummary(choice: PlaylistChoice, status: String?) {
+    PlaylistRow(choice)
+    status?.let {
+        Text(it, Modifier.padding(bottom = 12.dp), MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
     }
 }
 

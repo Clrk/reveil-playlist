@@ -45,6 +45,7 @@ class ScreensTest {
         override fun open(alarm: Alarm) = Unit
         override fun toggle(alarm: Alarm, enabled: Boolean) = Unit
         override fun unskip(alarm: Alarm) = Unit
+        override fun delete(alarm: Alarm) = Unit
     }
 
     private fun shot(content: @Composable () -> Unit) =
@@ -56,7 +57,14 @@ class ScreensTest {
     }
 
     @Test
-    fun edition() = shot { AlarmEditor(boulot, "", noActions, existing = true, now = { sunday }) }
+    fun edition() = shot {
+        AlarmEditor(boulot, "", noActions, existing = true, now = { sunday }) { "15 titres prêts hors ligne" }
+    }
+
+    @Test
+    fun editionTelechargement() = shot {
+        AlarmEditor(boulot, "", noActions, existing = true, now = { sunday }) { "Téléchargement en cours… 4 / 15" }
+    }
 
     @Test
     fun nouveauReveil() = shot { AlarmEditor(Alarm.at(LocalTime.of(7, 0), "3"), "", noActions, now = { sunday }) }
@@ -134,6 +142,21 @@ class ScreensTest {
     fun listeAnnonce() = shot {
         val ui = ListUi(listOf(boulot, weekend), next, offline = mapOf("1" to "Pas encore téléchargée, ce sera fait la veille"))
         AlarmListScreen(ui.copy(announcement = "Réveil dans 8 h 12 min"), noListEvents)
+    }
+
+    @Test
+    fun listeSuppression() = shot {
+        AlarmListScreen(ListUi(listOf(weekend), next, announcement = "Réveil supprimé", undo = {}), noListEvents)
+    }
+
+    @Test
+    fun accueil() = shot {
+        val steps = listOf(
+            PermissionStep("Notifications", "Pour sonner et afficher le rappel une heure avant.", "", true) {},
+            PermissionStep("Plein écran", "Pour afficher le réveil par-dessus l'écran verrouillé.", "", false) {},
+            PermissionStep("Batterie", "Pour télécharger tes musiques la veille, même téléphone en veille.", "", false) {},
+        )
+        OnboardingScreen(steps) {}
     }
 
     @Test

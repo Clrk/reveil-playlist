@@ -54,3 +54,19 @@ Fonctionnalité: Savoir quand et avec quoi le réveil sonnera
   Scénario: Une alarme sans playlist n'a pas d'état hors ligne
     Soit l'alarme "Boulot" à "07:00" répétée "mar"
     Alors l'alarme "Boulot" n'indique rien sur le hors ligne
+
+  Scénario: Pendant un téléchargement, on voit où il en est
+    Quand le téléchargement en est à "4" titres sur "15"
+    Alors le téléchargement indique "Téléchargement en cours… 4 / 15"
+
+  Scénario: Sans réseau, le téléchargement attend la connexion
+    Quand le téléchargement attend le réseau
+    Alors le téléchargement indique "En attente d'une connexion pour télécharger"
+
+  Scénario: Un téléchargement raté le dit
+    Quand le téléchargement a échoué
+    Alors le téléchargement indique "Téléchargement impossible pour l'instant, nouvel essai la veille"
+
+  Scénario: Au démarrage du téléchargement, on cherche d'abord les titres
+    Quand le téléchargement en est à "0" titres sur "0"
+    Alors le téléchargement indique "Recherche des titres de la playlist…"

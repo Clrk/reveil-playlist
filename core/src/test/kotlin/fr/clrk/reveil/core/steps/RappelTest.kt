@@ -18,6 +18,12 @@ class RappelTest {
             val card = WakeInfo.next(service.next(), now)
             assertEquals(title to detail, card.title to card.detail)
         }
+        step("le téléchargement en est à \"(\\d+)\" titres sur \"(\\d+)\"") { (done, total) ->
+            download = WakeInfo.Download.Running(done.toInt(), total.toInt())
+        }
+        step("le téléchargement attend le réseau") { download = WakeInfo.Download.Waiting }
+        step("le téléchargement a échoué") { download = WakeInfo.Download.Failed }
+        step("le téléchargement indique \"([^\"]+)\"") { (text) -> assertEquals(text, WakeInfo.download(download)) }
         step("\"(\\d+)\" titres de sa playlist sont téléchargés") { (count) -> cachedTracks = count.toInt() }
         step("l'alarme \"([^\"]*)\" indique \"([^\"]+)\"") { (label, text) ->
             assertEquals(text, WakeInfo.offline(alarm(label), cachedTracks))

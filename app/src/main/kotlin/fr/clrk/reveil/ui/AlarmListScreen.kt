@@ -1,6 +1,9 @@
 package fr.clrk.reveil.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -20,6 +23,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -41,6 +46,7 @@ data class ListUi(
     val offline: Map<String, String> = emptyMap(),
     val announcement: String? = null,
     val skipped: Map<String, String> = emptyMap(),
+    val undo: (() -> Unit)? = null,
 )
 
 interface ListEvents {
@@ -48,6 +54,7 @@ interface ListEvents {
     fun open(alarm: Alarm)
     fun toggle(alarm: Alarm, enabled: Boolean)
     fun unskip(alarm: Alarm)
+    fun delete(alarm: Alarm)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -55,7 +62,7 @@ interface ListEvents {
 fun AlarmListScreen(ui: ListUi, events: ListEvents) {
     Scaffold(
         topBar = { TopAppBar(title = { Text("Réveils") }) },
-        snackbarHost = { ui.announcement?.let { Snackbar(Modifier.padding(16.dp)) { Text(it) } } },
+        snackbarHost = { ui.announcement?.let { Announcement(it, ui.undo) } },
         floatingActionButton = {
             FloatingActionButton(onClick = events::add) { Icon(Icons.Default.Add, "Nouvelle alarme") }
         },
@@ -66,7 +73,9 @@ fun AlarmListScreen(ui: ListUi, events: ListEvents) {
             modifier = Modifier.padding(padding),
         ) {
             item { Header(ui) }
-            items(ui.alarms, key = { it.id }) { AlarmCard(it, CardNotes(ui.offline[it.id], ui.skipped[it.id]), events) }
+            items(ui.alarms, key = { it.id }) {
+                SwipeToDelete({ events.delete(it) }) { AlarmCard(it, CardNotes(ui.offline[it.id], ui.skipped[it.id]), events) }
+            }
         }
     }
 }
@@ -136,4 +145,29 @@ private fun Skipped(text: String, undo: () -> Unit) {
         Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary)
         TextButton(onClick = undo) { Text("Annuler") }
     }
+}
+
+@Composable
+private fun Announcement(text: String, undo: (() -> Unit)?) {
+    Snackbar(
+        Modifier.padding(16.dp),
+        action = undo?.let { { TextButton(onClick = it) { Text("Annuler") } } },
+    ) { Text(text) }
+}
+
+/** Swiping a card to the left deletes it; the snackbar then offers to undo. */
+@Composable
+private fun SwipeToDelete(onDelete: () -> Unit, content: @Composable () -> Unit) {
+    val state = rememberSwipeToDismissBoxState()
+    SwipeToDismissBox(
+        state = state,
+        enableDismissFromStartToEnd = false,
+        onDismiss = { onDelete() },
+        backgroundContent = {
+            Box(
+                Modifier.fillMaxSize().background(MaterialTheme.colorScheme.errorContainer, CardDefaults.shape).padding(24.dp),
+                contentAlignment = Alignment.CenterEnd,
+            ) { Text("Supprimer", color = MaterialTheme.colorScheme.onErrorContainer) }
+        },
+    ) { content() }
 }

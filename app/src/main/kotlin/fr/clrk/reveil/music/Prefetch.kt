@@ -6,6 +6,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
@@ -13,6 +14,10 @@ import fr.clrk.reveil.core.Alarm
 import fr.clrk.reveil.core.FallbackPlaylistSource
 import fr.clrk.reveil.core.PlaylistId
 import fr.clrk.reveil.core.PrefetchPolicy
+import fr.clrk.reveil.core.Track
+import fr.clrk.reveil.core.WakeInfo
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.Duration
@@ -25,38 +30,71 @@ class PrefetchWorker(context: Context, params: WorkerParameters) : CoroutineWork
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         val playlist = PlaylistId(inputData.getString(KEY_PLAYLIST) ?: return@withContext Result.failure())
         val source = FallbackPlaylistSource(YtMusicAccount(applicationContext), NewPipePlaylistSource())
-        val tracks = runCatching { source.tracks(playlist) }.getOrNull() ?: return@withContext Result.retry()
-        val cache = TrackCache(applicationContext, playlist)
+        val tracks = runCatching { source.tracks(playlist) }.getOrNull() ?: return@withContext giveUp()
+        refresh(TrackCache(applicationContext, playlist), tracks)
+    }
+
+    private suspend fun refresh(cache: TrackCache, tracks: List<Track>): Result {
         val plan = PrefetchPolicy.plan(tracks, cache.tracks(), cache.played(), CAPACITY, Random.Default)
         plan.evict.forEach(cache::remove)
-        plan.download.forEach { track -> runCatching { cache.store(track, AudioResolver.streamUrl(track)) } }
+        val stored = store(plan.download, cache)
         if (cache.played().size >= tracks.size - CAPACITY) cache.forgetPlayed()
-        Result.success()
+        return if (stored == 0 && plan.download.isNotEmpty()) giveUp() else Result.success()
     }
+
+    /** Downloads each track, reporting progress; returns how many succeeded. */
+    private suspend fun store(tracks: List<Track>, cache: TrackCache): Int = tracks.withIndex().count { (index, track) ->
+        setProgress(workDataOf(KEY_DONE to index, KEY_TOTAL to tracks.size))
+        runCatching { cache.store(track, AudioResolver.streamUrl(track)) }.isSuccess
+    }
+
+    /** A hand-started download reports the failure; the evening one tries again later. */
+    private fun giveUp() = if (inputData.getBoolean(KEY_NOW, false)) Result.failure() else Result.retry()
 
     companion object {
         const val KEY_PLAYLIST = "playlist"
+        const val KEY_NOW = "now"
+        const val KEY_DONE = "done"
+        const val KEY_TOTAL = "total"
         const val CAPACITY = 15
     }
 }
 
 object PrefetchScheduler {
     private const val WORK = "prefetch"
+    private const val WORK_NOW = "prefetch-now"
 
     fun reschedule(context: Context, next: Pair<Alarm, ZonedDateTime>?) {
         val playlist = next?.first?.playlistId ?: return WorkManager.getInstance(context).cancelUniqueWork(WORK).let { }
         val now = ZonedDateTime.now()
-        enqueue(context, playlist, Duration.between(now, PrefetchPolicy.at(next.second, now)))
+        enqueue(context, WORK, playlist, Duration.between(now, PrefetchPolicy.at(next.second, now)))
     }
 
-    fun now(context: Context, playlist: String) = enqueue(context, playlist, Duration.ZERO)
+    /** Uses its own slot, so it never replaces the evening download of the next alarm. */
+    fun now(context: Context, playlist: String) = enqueue(context, WORK_NOW, playlist, Duration.ZERO)
 
-    private fun enqueue(context: Context, playlist: String, delay: Duration) {
+    /** State of the hand-started download, null when there is none to show. */
+    fun nowState(context: Context): Flow<WakeInfo.Download?> =
+        WorkManager.getInstance(context).getWorkInfosForUniqueWorkFlow(WORK_NOW).map { it.firstOrNull()?.let(::toDownload) }
+
+    private fun toDownload(info: WorkInfo): WakeInfo.Download? = when (info.state) {
+        WorkInfo.State.ENQUEUED, WorkInfo.State.BLOCKED -> WakeInfo.Download.Waiting
+        WorkInfo.State.RUNNING -> running(info)
+        WorkInfo.State.FAILED -> WakeInfo.Download.Failed
+        else -> null
+    }
+
+    private fun running(info: WorkInfo) = WakeInfo.Download.Running(
+        info.progress.getInt(PrefetchWorker.KEY_DONE, 0),
+        info.progress.getInt(PrefetchWorker.KEY_TOTAL, 0),
+    )
+
+    private fun enqueue(context: Context, name: String, playlist: String, delay: Duration) {
         val request = OneTimeWorkRequestBuilder<PrefetchWorker>()
             .setInitialDelay(delay.toMillis(), TimeUnit.MILLISECONDS)
             .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
-            .setInputData(workDataOf(PrefetchWorker.KEY_PLAYLIST to playlist))
+            .setInputData(workDataOf(PrefetchWorker.KEY_PLAYLIST to playlist, PrefetchWorker.KEY_NOW to (name == WORK_NOW)))
             .build()
-        WorkManager.getInstance(context).enqueueUniqueWork(WORK, ExistingWorkPolicy.REPLACE, request)
+        WorkManager.getInstance(context).enqueueUniqueWork(name, ExistingWorkPolicy.REPLACE, request)
     }
 }
