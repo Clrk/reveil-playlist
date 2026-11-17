@@ -10,6 +10,7 @@ import fr.clrk.reveil.core.Alarm
 import fr.clrk.reveil.core.PlaylistChoice
 import fr.clrk.reveil.core.PlaylistId
 import fr.clrk.reveil.core.SearchResult
+import fr.clrk.reveil.core.WakeInfo
 import org.junit.Rule
 import org.junit.Test
 import java.time.DayOfWeek
@@ -23,6 +24,9 @@ class ScreensTest {
     private val weekdays = DayOfWeek.entries.take(5).toSet()
     private val boulot = Alarm("1", LocalTime.of(7, 0), weekdays, "Boulot", playlistId = "PLchill", playlistTitle = "Chill matin")
     private val weekend = Alarm("2", LocalTime.of(9, 30), setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY), "Week-end", enabled = false)
+
+    private val next = WakeInfo.NextCard("lun. 07:00", "dans 8 h 12 min · Boulot")
+    private val ready = mapOf("1" to "15 titres prêts hors ligne")
 
     private val noActions = object : EditorActions {
         override fun save(alarm: Alarm) = Unit
@@ -43,7 +47,7 @@ class ScreensTest {
 
     @Test
     fun liste() = shot {
-        AlarmListScreen(ListUi(listOf(boulot, weekend), "Prochain réveil : lun. 07:00 (dans 8 h 12 min) Boulot", emptyList()), noListEvents)
+        AlarmListScreen(ListUi(listOf(boulot, weekend), next, offline = ready), noListEvents)
     }
 
     @Test
@@ -109,7 +113,18 @@ class ScreensTest {
     @Test
     fun listeAvertissement() = shot {
         val warning = "L'économie de batterie peut empêcher de préparer les musiques hors ligne" to {}
-        val ui = ListUi(listOf(boulot, weekend), "Prochain réveil : lun. 07:00 (dans 8 h 12 min) Boulot", listOf(warning))
-        AlarmListScreen(ui, noListEvents)
+        AlarmListScreen(ListUi(listOf(boulot, weekend), next, listOf(warning), ready), noListEvents)
+    }
+
+    @Test
+    fun listeAnnonce() = shot {
+        val ui = ListUi(listOf(boulot, weekend), next, offline = mapOf("1" to "Pas encore téléchargée, ce sera fait la veille"))
+        AlarmListScreen(ui.copy(announcement = "Réveil dans 8 h 12 min"), noListEvents)
+    }
+
+    @Test
+    fun listeVide() = shot {
+        val none = WakeInfo.NextCard("Aucun réveil prévu", "Appuie sur + pour en créer un")
+        AlarmListScreen(ListUi(emptyList(), none), noListEvents)
     }
 }

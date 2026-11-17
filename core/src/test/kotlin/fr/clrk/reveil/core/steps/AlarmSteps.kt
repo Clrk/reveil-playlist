@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.TestFactory
 
-private const val ALARM = "l'alarme \"([^\"]+)\""
+private const val ALARM = "l'alarme \"([^\"]*)\""
 private const val PONCTUAL = "l'alarme ponctuelle \"([^\"]+)\" à \"([^\"]+)\""
 private const val REPEATED = "$ALARM à \"([^\"]+)\" répétée \"([^\"]+)\""
 

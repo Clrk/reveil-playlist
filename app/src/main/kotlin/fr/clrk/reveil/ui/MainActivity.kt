@@ -13,6 +13,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -20,18 +21,20 @@ import androidx.core.net.toUri
 import fr.clrk.reveil.alarm.RingService
 import fr.clrk.reveil.app
 import fr.clrk.reveil.core.Alarm
+import fr.clrk.reveil.core.PlaylistId
+import fr.clrk.reveil.core.WakeInfo
+import fr.clrk.reveil.music.TrackCache
+import kotlinx.coroutines.delay
 import fr.clrk.reveil.music.PrefetchScheduler
-import java.time.Duration
 import java.time.LocalTime
 import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 /** Alarm list: create, edit, toggle; also receives playlist links shared from YouTube Music. */
 class MainActivity : ComponentActivity() {
     private var alarms by mutableStateOf(emptyList<Alarm>())
     private var editing by mutableStateOf<Alarm?>(null)
     private var sharedLink by mutableStateOf("")
+    private var announcement by mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -65,7 +68,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private val actions = object : EditorActions {
-        override fun save(alarm: Alarm) { app.alarms.update(alarm); editing = null; changed() }
+        override fun save(alarm: Alarm) { app.alarms.update(alarm); editing = null; changed(); announce(alarm) }
         override fun delete(alarm: Alarm) { app.alarms.delete(alarm.id); editing = null; changed() }
         override fun test(alarm: Alarm) { app.alarms.update(alarm); RingService.start(this@MainActivity, alarm.id) }
         override fun prefetch(playlist: String) = PrefetchScheduler.now(this@MainActivity, playlist).let { }
@@ -75,21 +78,30 @@ class MainActivity : ComponentActivity() {
     private val listEvents = object : ListEvents {
         override fun add() { editing = Alarm.at(LocalTime.of(DEFAULT_HOUR, 0)) }
         override fun open(alarm: Alarm) { editing = alarm }
-        override fun toggle(alarm: Alarm, enabled: Boolean) { app.alarms.setEnabled(alarm.id, enabled); changed() }
+        override fun toggle(alarm: Alarm, enabled: Boolean) {
+            app.alarms.setEnabled(alarm.id, enabled)
+            changed()
+            announce(alarm.copy(enabled = enabled))
+        }
     }
 
     @Composable
     private fun Screen() {
-        AlarmListScreen(ListUi(alarms, nextText(), permissionWarnings()), listEvents)
+        val next = WakeInfo.next(app.alarms.next(), ZonedDateTime.now())
+        AlarmListScreen(ListUi(alarms, next, permissionWarnings(), offline(), announcement), listEvents)
+        LaunchedEffect(announcement) {
+            delay(ANNOUNCE_MS)
+            announcement = null
+        }
         editing?.let { AlarmEditor(it, sharedLink, actions) }
     }
 
-    private fun nextText(): String {
-        val (alarm, at) = app.alarms.next() ?: return "Aucun réveil prévu"
-        val left = Duration.between(ZonedDateTime.now(), at)
-        val day = at.format(DateTimeFormatter.ofPattern("EEE HH:mm", Locale.FRENCH))
-        return "Prochain réveil : $day (dans ${left.toHours()} h ${left.toMinutesPart()} min) ${alarm.label}".trim()
-    }
+    private fun announce(alarm: Alarm) { announcement = WakeInfo.announce(alarm, ZonedDateTime.now()) }
+
+    private fun offline(): Map<String, String> = alarms.mapNotNull { alarm ->
+        val cached = alarm.playlistId?.let { TrackCache(this, PlaylistId(it)).tracks().size } ?: 0
+        WakeInfo.offline(alarm, cached)?.let { alarm.id to it }
+    }.toMap()
 
     private fun permissionWarnings(): List<Pair<String, () -> Unit>> {
         val warnings = mutableListOf<Pair<String, () -> Unit>>()
@@ -126,5 +138,6 @@ class MainActivity : ComponentActivity() {
 
     private companion object {
         const val DEFAULT_HOUR = 7
+        const val ANNOUNCE_MS = 4_000L
     }
 }

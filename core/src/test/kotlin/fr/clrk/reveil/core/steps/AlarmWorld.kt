@@ -14,6 +14,7 @@ class AlarmWorld {
     var now: ZonedDateTime = Formats.moment("2026-11-16 06:00")
     val phone = FakePhoneScheduler()
     val disk = MemoryStore()
+    var cachedTracks = 0
     var service = newService()
 
     fun newService() = AlarmService(AlarmRepository(disk), phone) { now }

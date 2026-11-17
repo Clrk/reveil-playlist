@@ -18,6 +18,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -29,10 +30,17 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import fr.clrk.reveil.core.Alarm
+import fr.clrk.reveil.core.WakeInfo
 import java.time.format.DateTimeFormatter
 
-/** Everything the alarm list displays, computed by the activity. */
-data class ListUi(val alarms: List<Alarm>, val next: String, val warnings: List<Pair<String, () -> Unit>>)
+/** Everything the alarm list displays, computed by the activity. [offline] maps alarm ids to their offline status. */
+data class ListUi(
+    val alarms: List<Alarm>,
+    val next: WakeInfo.NextCard,
+    val warnings: List<Pair<String, () -> Unit>> = emptyList(),
+    val offline: Map<String, String> = emptyMap(),
+    val announcement: String? = null,
+)
 
 interface ListEvents {
     fun add()
@@ -45,17 +53,18 @@ interface ListEvents {
 fun AlarmListScreen(ui: ListUi, events: ListEvents) {
     Scaffold(
         topBar = { TopAppBar(title = { Text("Réveils") }) },
+        snackbarHost = { ui.announcement?.let { Snackbar(Modifier.padding(16.dp)) { Text(it) } } },
         floatingActionButton = {
             FloatingActionButton(onClick = events::add) { Icon(Icons.Default.Add, "Nouvelle alarme") }
         },
     ) { padding ->
         LazyColumn(
-            contentPadding = PaddingValues(16.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.padding(padding),
         ) {
             item { Header(ui) }
-            items(ui.alarms, key = { it.id }) { AlarmCard(it, events) }
+            items(ui.alarms, key = { it.id }) { AlarmCard(it, ui.offline[it.id], events) }
         }
     }
 }
@@ -63,13 +72,13 @@ fun AlarmListScreen(ui: ListUi, events: ListEvents) {
 @Composable
 private fun Header(ui: ListUi) {
     Column {
-        Text(ui.next, style = MaterialTheme.typography.titleMedium)
         ui.warnings.forEach { (text, fix) -> WarningCard(text, fix) }
+        NextCard(ui.next)
     }
 }
 
 @Composable
-private fun AlarmCard(alarm: Alarm, events: ListEvents) {
+private fun AlarmCard(alarm: Alarm, offline: String?, events: ListEvents) {
     Card(Modifier.fillMaxWidth().clickable { events.open(alarm) }) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
@@ -78,6 +87,7 @@ private fun AlarmCard(alarm: Alarm, events: ListEvents) {
                 alarm.playlistTitle?.let {
                     Text("♪ $it", style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
+                offline?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary) }
             }
             Switch(checked = alarm.enabled, onCheckedChange = { events.toggle(alarm, it) })
         }
@@ -96,6 +106,20 @@ private fun WarningCard(text: String, fix: () -> Unit) {
         Row(Modifier.padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(text, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
             TextButton(onClick = fix) { Text("Autoriser") }
+        }
+    }
+}
+
+@Composable
+private fun NextCard(card: WakeInfo.NextCard) {
+    Card(
+        Modifier.fillMaxWidth().padding(top = 12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Text("PROCHAIN RÉVEIL", style = MaterialTheme.typography.labelMedium)
+            Text(card.title, style = MaterialTheme.typography.headlineMedium)
+            Text(card.detail, style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
