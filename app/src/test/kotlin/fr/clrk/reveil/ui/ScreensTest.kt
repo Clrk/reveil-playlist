@@ -15,6 +15,8 @@ import org.junit.Rule
 import org.junit.Test
 import java.time.DayOfWeek
 import java.time.LocalTime
+import java.time.ZoneId
+import java.time.ZonedDateTime
 
 /** Screenshots of every screen, recorded with `./gradlew :app:recordPaparazziDebug`. */
 class ScreensTest {
@@ -26,6 +28,7 @@ class ScreensTest {
     private val weekend = Alarm("2", LocalTime.of(9, 30), setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY), "Week-end", enabled = false)
 
     private val next = WakeInfo.NextCard("lun. 07:00", "dans 8 h 12 min · Boulot")
+    private val sunday = ZonedDateTime.of(2026, 11, 15, 22, 48, 0, 0, ZoneId.of("Europe/Paris"))
     private val ready = mapOf("1" to "15 titres prêts hors ligne")
 
     private val noActions = object : EditorActions {
@@ -33,6 +36,7 @@ class ScreensTest {
         override fun delete(alarm: Alarm) = Unit
         override fun test(alarm: Alarm) = Unit
         override fun prefetch(playlist: String) = Unit
+        override fun skip(alarm: Alarm) = Unit
         override fun close() = Unit
     }
 
@@ -40,6 +44,7 @@ class ScreensTest {
         override fun add() = Unit
         override fun open(alarm: Alarm) = Unit
         override fun toggle(alarm: Alarm, enabled: Boolean) = Unit
+        override fun unskip(alarm: Alarm) = Unit
     }
 
     private fun shot(content: @Composable () -> Unit) =
@@ -51,7 +56,16 @@ class ScreensTest {
     }
 
     @Test
-    fun edition() = shot { AlarmEditor(boulot, "", noActions) }
+    fun edition() = shot { AlarmEditor(boulot, "", noActions, existing = true, now = { sunday }) }
+
+    @Test
+    fun nouveauReveil() = shot { AlarmEditor(Alarm.at(LocalTime.of(7, 0), "3"), "", noActions, now = { sunday }) }
+
+    @Test
+    fun listeSaut() = shot {
+        val ui = ListUi(listOf(boulot, weekend), WakeInfo.NextCard("mar. 07:00", "dans 1 j 8 h · Boulot"), offline = ready)
+        AlarmListScreen(ui.copy(skipped = mapOf("1" to "Réveil de lun. 07:00 sauté")), noListEvents)
+    }
 
     private val found = SearchResult.Found(
         listOf(
@@ -98,7 +112,7 @@ class ScreensTest {
     }
 
     @Test
-    fun editionSansPlaylist() = shot { AlarmEditor(weekend, "", noActions) }
+    fun editionSansPlaylist() = shot { AlarmEditor(weekend, "", noActions, existing = true, now = { sunday }) }
 
     @Test
     fun sonnerie() = paparazzi.snapshot {

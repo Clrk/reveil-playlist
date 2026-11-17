@@ -15,7 +15,11 @@ import java.time.Instant
 class AndroidAlarmScheduler(private val context: Context) : AlarmScheduler {
     private val manager = context.getSystemService(AlarmManager::class.java)
 
+    /** Reminders are plain exact alarms: only real wake-ups appear as the status-bar alarm clock. */
     override fun schedule(key: TriggerKey, at: Instant) {
+        if (key.kind == TriggerKey.Kind.REMINDER) {
+            return manager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at.toEpochMilli(), operation(key))
+        }
         val show = PendingIntent.getActivity(context, 0, Intent(context, MainActivity::class.java), FLAGS)
         manager.setAlarmClock(AlarmManager.AlarmClockInfo(at.toEpochMilli(), show), operation(key))
     }

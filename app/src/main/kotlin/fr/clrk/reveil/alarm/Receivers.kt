@@ -6,14 +6,20 @@ import android.content.Intent
 import fr.clrk.reveil.app
 import fr.clrk.reveil.core.TriggerKey
 
-/** Fired by AlarmManager: moves the alarm to its next occurrence and starts ringing. */
+/** Fired by AlarmManager: shows the reminder, or moves the alarm to its next occurrence and starts ringing. */
 class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val id = intent.getStringExtra(EXTRA_ID) ?: return
         val kind = intent.getStringExtra(EXTRA_KIND)?.let(TriggerKey.Kind::valueOf) ?: TriggerKey.Kind.RING
+        if (kind == TriggerKey.Kind.REMINDER) return remind(context, id)
+        Reminder.hide(context, id)
         context.app.alarms.onRing(id, kind)
         context.app.alarmsChanged()
         RingService.start(context, id)
+    }
+
+    private fun remind(context: Context, id: String) {
+        context.app.alarms.find(id)?.let { Reminder.show(context, it) }
     }
 
     companion object {

@@ -43,6 +43,7 @@ private data class AlarmRecord(
     val maxSnoozes: Int = Alarm.DEFAULT_MAX_SNOOZES,
     val snoozeCount: Int = 0,
     val rampSeconds: Int = Alarm.DEFAULT_RAMP_SECONDS,
+    val skipped: Long? = null,
 ) {
     fun toAlarm() = Alarm(
         id = id,
@@ -57,6 +58,7 @@ private data class AlarmRecord(
         maxSnoozes = maxSnoozes.takeIf { it != UNLIMITED },
         snoozeCount = snoozeCount,
         rampSeconds = rampSeconds,
+        skipped = skipped?.let { Instant.ofEpochMilli(it) },
     )
 
     companion object {
@@ -76,6 +78,7 @@ private data class AlarmRecord(
             maxSnoozes = alarm.maxSnoozes ?: UNLIMITED,
             snoozeCount = alarm.snoozeCount,
             rampSeconds = alarm.rampSeconds,
+            skipped = alarm.skipped?.toEpochMilli(),
         )
     }
 }

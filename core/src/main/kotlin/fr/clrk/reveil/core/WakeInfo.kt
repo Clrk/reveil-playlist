@@ -1,6 +1,7 @@
 package fr.clrk.reveil.core
 
 import java.time.Duration
+import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -23,6 +24,8 @@ object WakeInfo {
         val detail = listOf("dans ${countdown(now, at)}", alarm.label).filter { it.isNotBlank() }.joinToString(" · ")
         return NextCard(at.format(day), detail)
     }
+
+    fun skipped(alarm: Alarm, zone: ZoneId): String? = alarm.skipped?.let { "Réveil de ${it.atZone(zone).format(day)} sauté" }
 
     fun offline(alarm: Alarm, cachedTracks: Int): String? = when {
         alarm.playlistId == null -> null

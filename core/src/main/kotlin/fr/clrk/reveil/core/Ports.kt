@@ -2,9 +2,9 @@ package fr.clrk.reveil.core
 
 import java.time.Instant
 
-/** Identifies one system alarm slot: the main ring or the pending snooze of an alarm. */
+/** Identifies one system alarm slot: the main ring, the pending snooze or the reminder shown before ringing. */
 data class TriggerKey(val alarmId: String, val kind: Kind) {
-    enum class Kind { RING, SNOOZE }
+    enum class Kind { RING, SNOOZE, REMINDER }
 }
 
 /** Port to the phone's exact alarm service (AlarmManager on Android). */

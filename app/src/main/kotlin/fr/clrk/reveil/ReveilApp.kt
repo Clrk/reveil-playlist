@@ -34,11 +34,13 @@ class ReveilApp : Application() {
             setSound(null, null)
             setBypassDnd(true)
         }
-        getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
+        val reminder = NotificationChannel(CHANNEL_REMINDER, "Rappel avant le réveil", NotificationManager.IMPORTANCE_LOW)
+        getSystemService(NotificationManager::class.java).createNotificationChannels(listOf(channel, reminder))
     }
 
     companion object {
         const val CHANNEL_RING = "ring"
+        const val CHANNEL_REMINDER = "reminder"
     }
 }
 

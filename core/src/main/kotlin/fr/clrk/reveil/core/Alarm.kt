@@ -19,6 +19,7 @@ data class Alarm(
     val maxSnoozes: Int? = DEFAULT_MAX_SNOOZES,
     val snoozeCount: Int = 0,
     val rampSeconds: Int = DEFAULT_RAMP_SECONDS,
+    val skipped: Instant? = null,
 ) {
     val repeating: Boolean get() = days.isNotEmpty()
 

@@ -40,12 +40,14 @@ data class ListUi(
     val warnings: List<Pair<String, () -> Unit>> = emptyList(),
     val offline: Map<String, String> = emptyMap(),
     val announcement: String? = null,
+    val skipped: Map<String, String> = emptyMap(),
 )
 
 interface ListEvents {
     fun add()
     fun open(alarm: Alarm)
     fun toggle(alarm: Alarm, enabled: Boolean)
+    fun unskip(alarm: Alarm)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -64,7 +66,7 @@ fun AlarmListScreen(ui: ListUi, events: ListEvents) {
             modifier = Modifier.padding(padding),
         ) {
             item { Header(ui) }
-            items(ui.alarms, key = { it.id }) { AlarmCard(it, ui.offline[it.id], events) }
+            items(ui.alarms, key = { it.id }) { AlarmCard(it, CardNotes(ui.offline[it.id], ui.skipped[it.id]), events) }
         }
     }
 }
@@ -78,7 +80,7 @@ private fun Header(ui: ListUi) {
 }
 
 @Composable
-private fun AlarmCard(alarm: Alarm, offline: String?, events: ListEvents) {
+private fun AlarmCard(alarm: Alarm, notes: CardNotes, events: ListEvents) {
     Card(Modifier.fillMaxWidth().clickable { events.open(alarm) }) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
@@ -87,7 +89,8 @@ private fun AlarmCard(alarm: Alarm, offline: String?, events: ListEvents) {
                 alarm.playlistTitle?.let {
                     Text("♪ $it", style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
-                offline?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary) }
+                notes.offline?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary) }
+                notes.skipped?.let { Skipped(it) { events.unskip(alarm) } }
             }
             Switch(checked = alarm.enabled, onCheckedChange = { events.toggle(alarm, it) })
         }
@@ -121,5 +124,16 @@ private fun NextCard(card: WakeInfo.NextCard) {
             Text(card.title, style = MaterialTheme.typography.headlineMedium)
             Text(card.detail, style = MaterialTheme.typography.bodyMedium)
         }
+    }
+}
+
+/** Secondary lines of an alarm card: offline readiness and a skipped occurrence. */
+private data class CardNotes(val offline: String?, val skipped: String?)
+
+@Composable
+private fun Skipped(text: String, undo: () -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary)
+        TextButton(onClick = undo) { Text("Annuler") }
     }
 }

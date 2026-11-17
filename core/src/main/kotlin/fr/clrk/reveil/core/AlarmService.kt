@@ -10,6 +10,8 @@ class AlarmService(
     private val scheduler: AlarmScheduler,
     private val clock: () -> ZonedDateTime,
 ) {
+    private val planner = AlarmPlanner(scheduler, clock)
+
     @Suppress("LongParameterList")
     fun create(
         time: LocalTime,
@@ -38,7 +40,7 @@ class AlarmService(
 
     fun delete(id: String) {
         repository.delete(id)
-        TriggerKey.Kind.entries.forEach { scheduler.cancel(TriggerKey(id, it)) }
+        planner.cancel(id)
     }
 
     fun next(): Pair<Alarm, ZonedDateTime>? = repository.all()
@@ -51,8 +53,10 @@ class AlarmService(
      */
     fun onRing(id: String, kind: TriggerKey.Kind = TriggerKey.Kind.RING) {
         val alarm = find(id) ?: return
-        val count = if (kind == TriggerKey.Kind.RING) 0 else alarm.snoozeCount
-        update(alarm.copy(enabled = alarm.repeating, snoozedUntil = null, snoozeCount = count))
+        val newWake = kind == TriggerKey.Kind.RING
+        val count = if (newWake) 0 else alarm.snoozeCount
+        val skipped = alarm.skipped.takeUnless { newWake }
+        update(alarm.copy(enabled = alarm.repeating, snoozedUntil = null, snoozeCount = count, skipped = skipped))
     }
 
     /** Postpones the ringing alarm; returns false once no snooze is left. */
@@ -63,6 +67,17 @@ class AlarmService(
         return true
     }
 
+    /** Skips only the coming occurrence; a one-shot alarm has no other one, so it is switched off. */
+    fun skipNext(id: String) {
+        val alarm = find(id) ?: return
+        val next = NextTrigger.after(alarm, clock()) ?: return
+        update(if (alarm.repeating) alarm.copy(skipped = next.toInstant()) else alarm.copy(enabled = false))
+    }
+
+    fun unskip(id: String) {
+        find(id)?.let { update(it.copy(skipped = null)) }
+    }
+
     fun dismiss(id: String) {
         find(id)?.let { update(it.copy(snoozedUntil = null, snoozeCount = 0)) }
     }
@@ -70,13 +85,5 @@ class AlarmService(
     /** Restores every trigger, e.g. after the phone rebooted. */
     fun rescheduleAll() = repository.all().forEach(::plan)
 
-    private fun plan(alarm: Alarm) {
-        planSlot(TriggerKey(alarm.id, TriggerKey.Kind.RING), NextTrigger.after(alarm, clock())?.toInstant())
-        val snooze = alarm.snoozedUntil?.takeIf { it.isAfter(clock().toInstant()) }
-        planSlot(TriggerKey(alarm.id, TriggerKey.Kind.SNOOZE), snooze)
-    }
-
-    private fun planSlot(key: TriggerKey, at: java.time.Instant?) {
-        if (at == null) scheduler.cancel(key) else scheduler.schedule(key, at)
-    }
+    private fun plan(alarm: Alarm) = planner.plan(alarm)
 }

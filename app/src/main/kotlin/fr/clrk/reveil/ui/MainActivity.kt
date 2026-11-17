@@ -27,6 +27,7 @@ import fr.clrk.reveil.music.TrackCache
 import kotlinx.coroutines.delay
 import fr.clrk.reveil.music.PrefetchScheduler
 import java.time.LocalTime
+import java.time.ZoneId
 import java.time.ZonedDateTime
 
 /** Alarm list: create, edit, toggle; also receives playlist links shared from YouTube Music. */
@@ -72,12 +73,14 @@ class MainActivity : ComponentActivity() {
         override fun delete(alarm: Alarm) { app.alarms.delete(alarm.id); editing = null; changed() }
         override fun test(alarm: Alarm) { app.alarms.update(alarm); RingService.start(this@MainActivity, alarm.id) }
         override fun prefetch(playlist: String) = PrefetchScheduler.now(this@MainActivity, playlist).let { }
+        override fun skip(alarm: Alarm) { app.alarms.skipNext(alarm.id); editing = null; changed() }
         override fun close() { editing = null; sharedLink = "" }
     }
 
     private val listEvents = object : ListEvents {
         override fun add() { editing = Alarm.at(LocalTime.of(DEFAULT_HOUR, 0)) }
         override fun open(alarm: Alarm) { editing = alarm }
+        override fun unskip(alarm: Alarm) { app.alarms.unskip(alarm.id); changed() }
         override fun toggle(alarm: Alarm, enabled: Boolean) {
             app.alarms.setEnabled(alarm.id, enabled)
             changed()
@@ -88,12 +91,13 @@ class MainActivity : ComponentActivity() {
     @Composable
     private fun Screen() {
         val next = WakeInfo.next(app.alarms.next(), ZonedDateTime.now())
-        AlarmListScreen(ListUi(alarms, next, permissionWarnings(), offline(), announcement), listEvents)
+        val skipped = alarms.mapNotNull { a -> WakeInfo.skipped(a, ZoneId.systemDefault())?.let { a.id to it } }.toMap()
+        AlarmListScreen(ListUi(alarms, next, permissionWarnings(), offline(), announcement, skipped), listEvents)
         LaunchedEffect(announcement) {
             delay(ANNOUNCE_MS)
             announcement = null
         }
-        editing?.let { AlarmEditor(it, sharedLink, actions) }
+        editing?.let { edited -> AlarmEditor(edited, sharedLink, actions, existing = alarms.any { it.id == edited.id }) }
     }
 
     private fun announce(alarm: Alarm) { announcement = WakeInfo.announce(alarm, ZonedDateTime.now()) }

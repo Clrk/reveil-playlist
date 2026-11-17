@@ -9,7 +9,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.TopAppBar
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import fr.clrk.reveil.core.WakeInfo
+import java.time.ZonedDateTime
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.OutlinedCard
@@ -38,6 +50,7 @@ interface EditorActions {
     fun delete(alarm: Alarm)
     fun test(alarm: Alarm)
     fun prefetch(playlist: String)
+    fun skip(alarm: Alarm)
     fun close()
 }
 
@@ -73,17 +86,24 @@ private class EditorState(private val initial: Alarm, sharedLink: String, val ti
     )
 }
 
+/** Full-screen alarm editor; [existing] enables the actions that only make sense on a saved alarm. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AlarmEditor(initial: Alarm, sharedLink: String, actions: EditorActions) {
+fun AlarmEditor(
+    initial: Alarm,
+    sharedLink: String,
+    actions: EditorActions,
+    existing: Boolean = false,
+    now: () -> ZonedDateTime = ZonedDateTime::now,
+) {
     val time = rememberTimePickerState(initial.time.hour, initial.time.minute, is24Hour = true)
     val state = remember(initial) { EditorState(initial, sharedLink, time) }
-    AlertDialog(
-        onDismissRequest = actions::close,
-        confirmButton = { TextButton(onClick = { actions.save(state.alarm()) }) { Text("Enregistrer") } },
-        dismissButton = { TextButton(onClick = { actions.delete(initial) }) { Text("Supprimer") } },
-        text = { EditorForm(state, actions) },
-    )
+    Dialog(onDismissRequest = actions::close, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        EditorScaffold(if (existing) "Modifier le réveil" else "Nouveau réveil", state, actions) {
+            EditorForm(state, actions, now)
+            if (existing) SavedAlarmActions(initial, actions)
+        }
+    }
     if (state.picking) {
         PlaylistPicker(onPick = { state.playlist = it; state.picking = false }, onClose = { state.picking = false })
     }
@@ -91,20 +111,49 @@ fun AlarmEditor(initial: Alarm, sharedLink: String, actions: EditorActions) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun EditorForm(state: EditorState, actions: EditorActions) {
-    Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        TimeInput(state.time)
-        DayChips(state.days) { state.days = it }
-        OutlinedTextField(state.label, { state.label = it }, label = { Text("Nom") }, singleLine = true)
-        PlaylistField(state)
-        Choices("Montée du volume", RAMP_CHOICES, state.ramp) { state.ramp = it }
-        Choices("Snooze (minutes)", SNOOZE_CHOICES, state.snooze) { state.snooze = it }
-        Choices("Snoozes au maximum", MAX_SNOOZE_CHOICES, state.maxSnoozes) { state.maxSnoozes = it }
-        Row {
-            TextButton(onClick = { actions.test(state.alarm()) }) { Text("Tester") }
-            state.playlist?.let { TextButton(onClick = { actions.prefetch(it.id.value) }) { Text("Télécharger maintenant") } }
-        }
+private fun EditorScaffold(title: String, state: EditorState, actions: EditorActions, content: @Composable () -> Unit) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(title) },
+                navigationIcon = { IconButton(onClick = actions::close) { Icon(Icons.Default.Close, "Fermer") } },
+                actions = { TextButton(onClick = { actions.save(state.alarm()) }) { Text("Enregistrer") } },
+            )
+        },
+    ) { padding ->
+        Column(
+            Modifier.padding(padding).padding(horizontal = 16.dp).verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) { content() }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EditorForm(state: EditorState, actions: EditorActions, now: () -> ZonedDateTime) {
+    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+        TimeInput(state.time)
+        Text(WakeInfo.announce(state.alarm(), now()).orEmpty(), color = MaterialTheme.colorScheme.primary)
+    }
+    DayChips(state.days) { state.days = it }
+    OutlinedTextField(state.label, { state.label = it }, Modifier.fillMaxWidth(), label = { Text("Nom") }, singleLine = true)
+    PlaylistField(state)
+    Choices("Montée du volume", RAMP_CHOICES, state.ramp) { state.ramp = it }
+    Choices("Snooze (minutes)", SNOOZE_CHOICES, state.snooze) { state.snooze = it }
+    Choices("Snoozes au maximum", MAX_SNOOZE_CHOICES, state.maxSnoozes) { state.maxSnoozes = it }
+    Row {
+        TextButton(onClick = { actions.test(state.alarm()) }) { Text("Tester") }
+        state.playlist?.let { TextButton(onClick = { actions.prefetch(it.id.value) }) { Text("Télécharger maintenant") } }
+    }
+}
+
+@Composable
+private fun SavedAlarmActions(alarm: Alarm, actions: EditorActions) {
+    HorizontalDivider()
+    if (alarm.enabled && alarm.repeating && alarm.skipped == null) {
+        TextButton(onClick = { actions.skip(alarm) }) { Text("Sauter le prochain réveil") }
+    }
+    TextButton(onClick = { actions.delete(alarm) }) { Text("Supprimer le réveil", color = MaterialTheme.colorScheme.error) }
 }
 
 @Composable
