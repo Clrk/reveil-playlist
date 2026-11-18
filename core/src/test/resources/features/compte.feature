@@ -44,3 +44,12 @@ Fonctionnalité: Retrouver mes propres playlists YouTube Music grâce à ma conn
     Soit la lecture avec mon compte trouve "C"
     Et la lecture sans compte trouve "A,B"
     Alors la playlist donne "C"
+
+  Scénario: Une longue playlist privée est lue en entier, page après page
+    Soit YouTube Music renvoie la playlist "playlist.json" puis la suite "playlist-suite.json"
+    Alors ses morceaux sont "Clair de lune, Gymnopédie No.1, Titre inconnu, Ajouté hier"
+    Et la suite a été demandée avec "suite"
+
+  Scénario: La lecture page après page s'arrête même si YouTube Music boucle
+    Soit YouTube Music renvoie sans fin la playlist "playlist.json"
+    Alors "20" pages au plus ont été lues

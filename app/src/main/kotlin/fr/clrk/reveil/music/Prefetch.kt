@@ -35,10 +35,11 @@ class PrefetchWorker(context: Context, params: WorkerParameters) : CoroutineWork
     }
 
     private suspend fun refresh(cache: TrackCache, tracks: List<Track>): Result {
-        val plan = PrefetchPolicy.plan(tracks, cache.tracks(), cache.played(), CAPACITY, Random.Default)
+        val plan = PrefetchPolicy.plan(tracks, cache.tracks(), cache.played(), CAPACITY, Random.Default, cache.known())
         plan.evict.forEach(cache::remove)
         val stored = store(plan.download, cache)
         if (cache.played().size >= tracks.size - CAPACITY) cache.forgetPlayed()
+        if (stored == plan.download.size) cache.remember(tracks)
         return if (stored == 0 && plan.download.isNotEmpty()) giveUp() else Result.success()
     }
 

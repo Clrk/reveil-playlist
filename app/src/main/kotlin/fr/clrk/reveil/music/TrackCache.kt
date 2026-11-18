@@ -37,6 +37,11 @@ class TrackCache(context: Context, playlist: PlaylistId) {
 
     fun forgetPlayed() = prefs.edit { remove(PLAYED) }
 
+    /** Track ids of the playlist at the last download, to spot the ones added since. */
+    fun known(): Set<String> = prefs.getStringSet(KNOWN, emptySet()).orEmpty()
+
+    fun remember(tracks: List<Track>) = prefs.edit { putStringSet(KNOWN, tracks.map { it.id }.toSet()) }
+
     private fun file(id: String) = File(dir, "$id.audio")
 
     private fun titles(): Map<String, String> {
@@ -68,6 +73,7 @@ class TrackCache(context: Context, playlist: PlaylistId) {
 
     private companion object {
         const val PLAYED = "played"
+        const val KNOWN = "known"
         const val CHUNK = 1_000_000L
     }
 }

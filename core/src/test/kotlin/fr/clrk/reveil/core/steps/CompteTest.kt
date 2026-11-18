@@ -20,6 +20,7 @@ class AccountWorld {
     var tracks = listOf<Track>()
     var withAccount = PlaylistSource { throw IOException("pas de compte") }
     var withoutAccount = PlaylistSource { emptyList() }
+    val asked = mutableListOf<String>()
 
     fun fixture(name: String) = requireNotNull(javaClass.classLoader.getResource("fixtures/$name")).readText()
 
@@ -36,6 +37,7 @@ class CompteTest {
         step("elle ne porte pas d'autorisation") { assertEquals(null, authorization) }
         step("elle porte l'autorisation \"([^\"]+)\"") { (expected) -> assertEquals(expected, authorization) }
         libraryAndFallbackSteps()
+        pagingSteps()
     }
 }
 
@@ -57,4 +59,15 @@ private fun fr.clrk.reveil.core.bdd.StepRegistry<AccountWorld>.libraryAndFallbac
         val tracks = FallbackPlaylistSource(withAccount, withoutAccount).tracks(PlaylistId("PLx"))
         assertEquals(Formats.list(ids), tracks.map { it.id })
     }
+}
+
+private fun fr.clrk.reveil.core.bdd.StepRegistry<AccountWorld>.pagingSteps() {
+    step("YouTube Music renvoie la playlist \"([^\"]+)\" puis la suite \"([^\"]+)\"") { (first, next) ->
+        tracks = YtMusicParser.allTracks(fixture(first)) { token -> asked += token; fixture(next) }
+    }
+    step("la suite a été demandée avec \"([^\"]+)\"") { (token) -> assertEquals(listOf(token), asked) }
+    step("YouTube Music renvoie sans fin la playlist \"([^\"]+)\"") { (file) ->
+        tracks = YtMusicParser.allTracks(fixture(file)) { token -> asked += token; fixture(file) }
+    }
+    step("\"(\\d+)\" pages au plus ont été lues") { (pages) -> assertEquals(pages.toInt() - 1, asked.size) }
 }

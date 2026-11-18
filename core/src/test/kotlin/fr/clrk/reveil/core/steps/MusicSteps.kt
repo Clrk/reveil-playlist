@@ -56,11 +56,17 @@ private fun StepRegistry<MusicWorld>.prefetchSteps() {
         assertEquals(moment, Formats.show(PrefetchPolicy.at(nextWake, now)))
     }
     step("le pré-téléchargement choisit les morceaux") {
-        prefetch = PrefetchPolicy.plan(playlistTracks(), cached, played, capacity, random)
+        prefetch = PrefetchPolicy.plan(playlistTracks(), cached, played, capacity, random, known)
     }
     step("il télécharge \"(\\d+)\" morceaux parmi $VALUE") { (count, ids) ->
         assertEquals(count.toInt(), prefetch.download.size)
         assertTrue(Formats.list(ids).containsAll(prefetch.download.map { it.id }))
+    }
+    step("la playlist contenait $VALUE au dernier téléchargement") { (ids) -> known = Formats.list(ids).toSet() }
+    step("il télécharge notamment $VALUE") { (id) -> assertTrue(id in prefetch.download.map { it.id }) }
+    step("il supprime \"(\\d+)\" morceaux parmi $VALUE") { (count, ids) ->
+        assertEquals(count.toInt(), prefetch.evict.size)
+        assertTrue(Formats.list(ids).containsAll(prefetch.evict.map { it.id }))
     }
     step("il supprime $VALUE") { (ids) -> assertEquals(Formats.list(ids), prefetch.evict.map { it.id }) }
     step("il ne supprime aucun morceau") { assertEquals(emptyList<Any>(), prefetch.evict) }

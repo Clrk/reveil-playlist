@@ -33,10 +33,20 @@ class YtMusicSession(val cookies: String) {
 object YtMusicParser {
     private const val BROWSE_PREFIX = "VL"
     private const val UNKNOWN_TITLE = "Titre inconnu"
+    private const val MAX_PAGES = 20
 
     fun library(json: String): List<PlaylistChoice> = renderers(json, "musicTwoRowItemRenderer").mapNotNull(::toChoice)
 
     fun tracks(json: String): List<Track> = renderers(json, "musicResponsiveListItemRenderer").mapNotNull(::toTrack)
+
+    /** Reads a long playlist page after page (YouTube Music sends about 100 tracks per page). */
+    fun allTracks(firstPage: String, nextPage: (String) -> String): List<Track> {
+        val pages = generateSequence(firstPage) { page -> continuation(page)?.let(nextPage) }.take(MAX_PAGES)
+        return pages.flatMap { tracks(it) }.toList()
+    }
+
+    private fun continuation(json: String): String? =
+        renderers(json, "continuationCommand").firstNotNullOfOrNull { it.text("token") }
 
     private fun toChoice(item: JsonObject): PlaylistChoice? {
         val browseId = item.text("navigationEndpoint", "browseEndpoint", "browseId") ?: return null
@@ -68,11 +78,12 @@ object YtMusicParser {
         is JsonPrimitive -> emptyList()
     }
 
-    private fun JsonObject.path(vararg keys: String): JsonElement? =
-        keys.fold(this as JsonElement?) { current, key -> (current as? JsonObject)?.get(key) }
-
-    private fun JsonObject.text(vararg keys: String): String? = (path(*keys) as? JsonPrimitive)?.content
 }
+
+private fun JsonObject.path(vararg keys: String): JsonElement? =
+    keys.fold(this as JsonElement?) { current, key -> (current as? JsonObject)?.get(key) }
+
+private fun JsonObject.text(vararg keys: String): String? = (path(*keys) as? JsonPrimitive)?.content
 
 /** Reads a playlist with the user's account first (private playlists), then anonymously. */
 class FallbackPlaylistSource(private val primary: PlaylistSource, private val secondary: PlaylistSource) : PlaylistSource {

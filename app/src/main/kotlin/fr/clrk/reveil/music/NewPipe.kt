@@ -66,7 +66,7 @@ class NewPipePlaylistSource(private val maxTracks: Int = MAX_TRACKS) : PlaylistS
     private fun toTrack(item: StreamInfoItem) = Track(service.streamLHFactory.getId(item.url), item.name)
 
     private companion object {
-        const val MAX_TRACKS = 300
+        const val MAX_TRACKS = 1000
     }
 }
 

@@ -28,13 +28,15 @@ class YtMusicAccount(context: Context) : PlaylistSource {
 
     fun signOut() = prefs.edit { remove(COOKIES) }
 
-    fun library(): List<PlaylistChoice> = YtMusicParser.library(browse("FEmusic_liked_playlists"))
+    fun library(): List<PlaylistChoice> = YtMusicParser.library(browse("browseId", "FEmusic_liked_playlists"))
 
-    override fun tracks(id: PlaylistId): List<Track> = YtMusicParser.tracks(browse("VL${id.value}"))
+    /** All pages of the playlist, so tracks added at the end of a long playlist are seen too. */
+    override fun tracks(id: PlaylistId): List<Track> =
+        YtMusicParser.allTracks(browse("browseId", "VL${id.value}")) { token -> browse("continuation", token) }
 
-    private fun browse(browseId: String): String {
+    private fun browse(key: String, value: String): String {
         val session = session ?: throw IOException("Non connecté à YouTube Music")
-        val body = JSONObject().put("browseId", browseId).put("context", CONTEXT).toString()
+        val body = JSONObject().put(key, value).put("context", CONTEXT).toString()
         val request = Request.Builder().url("${YtMusicSession.ORIGIN}/youtubei/v1/browse?prettyPrint=false")
             .post(body.toRequestBody("application/json".toMediaType()))
             .header("Cookie", session.cookies)

@@ -15,6 +15,7 @@ class MusicWorld {
     val online = FakePlaylistSource()
     var cached = listOf<Track>()
     var played = setOf<String>()
+    var known = setOf<String>()
     var playlist: PlaylistId? = PlaylistId("PLtest")
     var capacity = 0
     val random = Random(SEED)
