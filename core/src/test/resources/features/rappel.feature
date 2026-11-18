@@ -36,37 +36,37 @@ Fonctionnalité: Savoir quand et avec quoi le réveil sonnera
   Scénario: Sans alarme active, la carte l'indique
     Alors la carte du prochain réveil affiche "Aucun réveil prévu" et "Appuie sur + pour en créer un"
 
-  Scénario: Une playlist téléchargée est prête hors ligne
+  Scénario: Une playlist dont la musique est en cache est prête, sans détail technique
     Soit l'alarme "Boulot" à "07:00" répétée "mar" avec la playlist "PLchill" nommée "Chill matin"
     Quand "15" titres de sa playlist sont téléchargés
-    Alors l'alarme "Boulot" indique "15 titres prêts hors ligne"
+    Alors l'alarme "Boulot" indique "✓ Prête pour le réveil, même hors ligne"
 
-  Scénario: Un seul titre téléchargé s'écrit au singulier
+  Scénario: Un seul titre en cache suffit pour être prêt
     Soit l'alarme "Boulot" à "07:00" répétée "mar" avec la playlist "PLchill" nommée "Chill matin"
     Quand "1" titres de sa playlist sont téléchargés
-    Alors l'alarme "Boulot" indique "1 titre prêt hors ligne"
+    Alors l'alarme "Boulot" indique "✓ Prête pour le réveil, même hors ligne"
 
-  Scénario: Rien de téléchargé, on prévient que ça se fera la veille
+  Scénario: Rien en cache, on prévient que ce sera prêt la veille
     Soit l'alarme "Boulot" à "07:00" répétée "mar" avec la playlist "PLchill" nommée "Chill matin"
     Quand "0" titres de sa playlist sont téléchargés
-    Alors l'alarme "Boulot" indique "Pas encore téléchargée, ce sera fait la veille"
+    Alors l'alarme "Boulot" indique "Sera prête la veille du réveil"
 
   Scénario: Une alarme sans playlist n'a pas d'état hors ligne
     Soit l'alarme "Boulot" à "07:00" répétée "mar"
     Alors l'alarme "Boulot" n'indique rien sur le hors ligne
 
-  Scénario: Pendant un téléchargement, on voit où il en est
+  Scénario: Pendant la préparation, on voit où elle en est en pourcentage
     Quand le téléchargement en est à "4" titres sur "15"
-    Alors le téléchargement indique "Téléchargement en cours… 4 / 15"
+    Alors le téléchargement indique "Préparation… 27 %"
 
   Scénario: Sans réseau, le téléchargement attend la connexion
     Quand le téléchargement attend le réseau
-    Alors le téléchargement indique "En attente d'une connexion pour télécharger"
+    Alors le téléchargement indique "Préparation en attente d'une connexion"
 
   Scénario: Un téléchargement raté le dit
     Quand le téléchargement a échoué
-    Alors le téléchargement indique "Téléchargement impossible pour l'instant, nouvel essai la veille"
+    Alors le téléchargement indique "Préparation impossible pour l'instant, nouvel essai la veille"
 
   Scénario: Au démarrage du téléchargement, on cherche d'abord les titres
     Quand le téléchargement en est à "0" titres sur "0"
-    Alors le téléchargement indique "Recherche des titres de la playlist…"
+    Alors le téléchargement indique "Préparation…"

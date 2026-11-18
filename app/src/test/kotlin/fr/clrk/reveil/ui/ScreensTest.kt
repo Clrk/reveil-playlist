@@ -29,7 +29,7 @@ class ScreensTest {
 
     private val next = WakeInfo.NextCard("lun. 07:00", "dans 8 h 12 min · Boulot")
     private val sunday = ZonedDateTime.of(2026, 11, 15, 22, 48, 0, 0, ZoneId.of("Europe/Paris"))
-    private val ready = mapOf("1" to "15 titres prêts hors ligne")
+    private val ready = mapOf("1" to "✓ Prête pour le réveil, même hors ligne")
 
     private val noActions = object : EditorActions {
         override fun save(alarm: Alarm) = Unit
@@ -58,12 +58,12 @@ class ScreensTest {
 
     @Test
     fun edition() = shot {
-        AlarmEditor(boulot, "", noActions, existing = true, now = { sunday }) { "15 titres prêts hors ligne" }
+        AlarmEditor(boulot, "", noActions, existing = true, now = { sunday }) { "✓ Prête pour le réveil, même hors ligne" }
     }
 
     @Test
     fun editionTelechargement() = shot {
-        AlarmEditor(boulot, "", noActions, existing = true, now = { sunday }) { "Téléchargement en cours… 4 / 15" }
+        AlarmEditor(boulot, "", noActions, existing = true, now = { sunday }) { "Préparation… 27 %" }
     }
 
     @Test
@@ -140,7 +140,7 @@ class ScreensTest {
 
     @Test
     fun listeAnnonce() = shot {
-        val ui = ListUi(listOf(boulot, weekend), next, offline = mapOf("1" to "Pas encore téléchargée, ce sera fait la veille"))
+        val ui = ListUi(listOf(boulot, weekend), next, offline = mapOf("1" to "Sera prête la veille du réveil"))
         AlarmListScreen(ui.copy(announcement = "Réveil dans 8 h 12 min"), noListEvents)
     }
 

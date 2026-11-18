@@ -171,7 +171,7 @@ private fun PlaylistField(state: EditorState, music: (String) -> String?, action
         TextButton(onClick = { state.picking = true }) { Text(if (state.playlist == null) "Choisir une playlist" else "Changer") }
         state.playlist?.let { choice ->
             TextButton(onClick = { state.playlist = null }) { Text("Retirer") }
-            TextButton(onClick = { actions.prefetch(choice.id.value) }) { Text("Télécharger maintenant") }
+            TextButton(onClick = { actions.prefetch(choice.id.value) }) { Text("Préparer maintenant") }
         }
     }
 }
@@ -179,9 +179,7 @@ private fun PlaylistField(state: EditorState, music: (String) -> String?, action
 @Composable
 private fun MusicSummary(choice: PlaylistChoice, status: String?) {
     PlaylistRow(choice)
-    status?.let {
-        Text(it, Modifier.padding(bottom = 12.dp), MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
-    }
+    status?.let { MusicStatus(it, Modifier.padding(bottom = 12.dp)) }
 }
 
 private fun initialChoice(alarm: Alarm, sharedLink: String): PlaylistChoice? {

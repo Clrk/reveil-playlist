@@ -31,6 +31,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -98,7 +99,7 @@ private fun AlarmCard(alarm: Alarm, notes: CardNotes, events: ListEvents) {
                 alarm.playlistTitle?.let {
                     Text("♪ $it", style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
-                notes.offline?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary) }
+                notes.offline?.let { MusicStatus(it) }
                 notes.skipped?.let { Skipped(it) { events.unskip(alarm) } }
             }
             Switch(checked = alarm.enabled, onCheckedChange = { events.toggle(alarm, it) })
@@ -170,4 +171,15 @@ private fun SwipeToDelete(onDelete: () -> Unit, content: @Composable () -> Unit)
             ) { Text("Supprimer", color = MaterialTheme.colorScheme.onErrorContainer) }
         },
     ) { content() }
+}
+
+/** Whether the alarm's music is ready: highlighted once it is, discreet while it is still being prepared. */
+@Composable
+internal fun MusicStatus(text: String, modifier: Modifier = Modifier) {
+    val ready = text.startsWith(WakeInfo.READY)
+    Text(
+        text, modifier, style = MaterialTheme.typography.bodySmall,
+        color = if (ready) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+        fontWeight = if (ready) FontWeight.Medium else null,
+    )
 }

@@ -32,18 +32,21 @@ object WakeInfo {
 
     fun download(state: Download): String = when (state) {
         is Download.Running -> running(state)
-        Download.Waiting -> "En attente d'une connexion pour télécharger"
-        Download.Failed -> "Téléchargement impossible pour l'instant, nouvel essai la veille"
+        Download.Waiting -> "Préparation en attente d'une connexion"
+        Download.Failed -> "Préparation impossible pour l'instant, nouvel essai la veille"
     }
 
     private fun running(state: Download.Running) =
-        if (state.total == 0) "Recherche des titres de la playlist…" else "Téléchargement en cours… ${state.done} / ${state.total}"
+        if (state.total == 0) "Préparation…" else "Préparation… ${(state.done * PERCENT + state.total / 2) / state.total} %"
 
     fun offline(alarm: Alarm, cachedTracks: Int): String? = alarm.playlistId?.let { offline(cachedTracks) }
 
-    fun offline(cachedTracks: Int): String = when {
-        cachedTracks == 0 -> "Pas encore téléchargée, ce sera fait la veille"
-        cachedTracks == 1 -> "1 titre prêt hors ligne"
-        else -> "$cachedTracks titres prêts hors ligne"
-    }
+    /** The user only needs to know whether the alarm will play offline, not how many tracks are cached. */
+    fun offline(cachedTracks: Int): String =
+        if (cachedTracks > 0) "$READY Prête pour le réveil, même hors ligne" else "Sera prête la veille du réveil"
+
+    /** Mark that opens a text saying the music is ready, so screens can highlight it. */
+    const val READY = "✓"
+
+    private const val PERCENT = 100
 }
