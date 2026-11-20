@@ -13,10 +13,14 @@ Fonctionnalité: Changer de disque entre deux morceaux
     Et le bras est au-dessus du disque
     Et le disque ralentit
 
-  Scénario: Le disque s'arrête et la nouvelle pochette arrive
+  Scénario: Le disque s'arrête et la nouvelle pochette commence à se poser
     Quand on regarde à "61300" ms
     Alors le disque est à l'arrêt
-    Et la nouvelle pochette est sur le disque
+    Et la nouvelle pochette se pose en fondu sur l'ancienne
+
+  Scénario: La nouvelle pochette est posée
+    Quand on regarde à "61800" ms
+    Alors la nouvelle pochette est sur le disque
 
   Scénario: Pendant le ralenti, l'ancienne pochette tourne encore
     Quand on regarde à "60600" ms

@@ -76,7 +76,10 @@ private fun plates() = Plates(
  * What the room shows: today's [sky] lit to [light]; the record label is the track [cover] turned by [spin] degrees;
  * the tonearm follows [arm]; [seconds] since the ring started slides the rain drop shadows.
  */
-data class SceneState(val light: LightStage, val sky: Sky, val cover: Painter?, val spin: Float, val arm: ArmPose, val seconds: Float = 0f)
+data class SceneState(val light: LightStage, val sky: Sky, val cover: Label, val spin: Float, val arm: ArmPose, val seconds: Float = 0f)
+
+/** The record label: the track [cover], set down in a fade over the [previous] one while [blend] goes 0 to 1. */
+data class Label(val cover: Painter?, val previous: Painter? = null, val blend: Float = 1f)
 
 /** The room at dawn: the night picture, lit up by the morning picture of today's sky as the light rises. */
 @Composable
@@ -159,7 +162,7 @@ private fun DrawScope.plate(image: ImageBitmap, alpha: Float = 1f) =
     drawImage(image, dstSize = IntSize(PLATE_W.toInt(), PLATE_H.toInt()), alpha = alpha)
 
 /** The record label is an ellipse on the tilted platter: draw the cover in a circle, squashed and spun. */
-private fun DrawScope.label(cover: Painter?, spin: Float, brightness: Float) {
+private fun DrawScope.label(label: Label, spin: Float, brightness: Float) {
     withTransform({
         translate(LABEL_X, LABEL_Y)
         rotate(LABEL_TILT, Offset.Zero)
@@ -168,19 +171,25 @@ private fun DrawScope.label(cover: Painter?, spin: Float, brightness: Float) {
     }) {
         grooves(brightness)
         val circle = Path().apply { addOval(Rect(Offset.Zero, LABEL_R)) }
-        if (cover != null) clipPath(circle) { centreCrop(cover, brightness) }
+        clipPath(circle) {
+            label.previous?.takeIf { label.blend < 1f }?.let { centreCrop(it, brightness, 1f - label.blend) }
+            label.cover?.let { cover ->
+                val drop = 1f + SET_DOWN * (1f - label.blend)
+                scale(drop, drop, Offset.Zero) { centreCrop(cover, brightness, label.blend) }
+            }
+        }
         drawCircle(Color(0xFFCFC9C0), radius = 1.6f, center = Offset.Zero)
     }
 }
 
 /** Draws the centre square of the cover over the label circle, scaled, never stretched. */
-private fun DrawScope.centreCrop(cover: Painter, brightness: Float) {
+private fun DrawScope.centreCrop(cover: Painter, brightness: Float, alpha: Float) {
     val known = cover.intrinsicSize.isSpecified && cover.intrinsicSize.minDimension > 0f
     val image = if (known) cover.intrinsicSize else Size(1f, 1f)
     val crop = CoverCrop.of(image.width, image.height)
     val k = LABEL_R * 2 / crop.side
     translate(-LABEL_R - crop.x * k, -LABEL_R - crop.y * k) {
-        with(cover) { draw(Size(image.width * k, image.height * k), colorFilter = dim(brightness)) }
+        with(cover) { draw(Size(image.width * k, image.height * k), alpha, dim(brightness)) }
     }
 }
 
@@ -214,6 +223,9 @@ private fun dim(brightness: Float): ColorFilter? =
     if (brightness >= 1f) null else ColorFilter.colorMatrix(ColorMatrix().apply { setToScale(brightness, brightness, brightness, 1f) })
 
 private const val NIGHT_LABEL = 0.22f
+
+/** The new cover starts slightly larger, as if coming down onto the record. */
+private const val SET_DOWN = 0.08f
 private const val PINK_GLOW = 0.38f
 private const val SWEEP_SOFT = 0.18f
 private const val SWEEP_X0 = 40f

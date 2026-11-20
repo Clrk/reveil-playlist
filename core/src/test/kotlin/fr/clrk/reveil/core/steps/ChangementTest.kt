@@ -3,7 +3,6 @@ package fr.clrk.reveil.core.steps
 import fr.clrk.reveil.core.RecordChange
 import fr.clrk.reveil.core.bdd.FeatureRunner
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.TestFactory
 
@@ -27,7 +26,10 @@ class ChangementTest {
         step("le disque est à l'arrêt") { assertEquals(0f, speed) }
         step("le disque accélère") { assertTrue(speed > 0f && speed < 1f, "speed=$speed") }
         step("le disque tourne à \"(\\d+)\" tours par minute") { (rpm) -> assertEquals(rpm.toInt(), (speed * 100 / 3).toInt()) }
-        step("la nouvelle pochette est sur le disque") { assertTrue(change.showsNewCover(ms)) }
-        step("l'ancienne pochette est sur le disque") { assertFalse(change.showsNewCover(ms)) }
+        step("la nouvelle pochette est sur le disque") { assertEquals(1f, change.newCover(ms)) }
+        step("l'ancienne pochette est sur le disque") { assertEquals(0f, change.newCover(ms)) }
+        step("la nouvelle pochette se pose en fondu sur l'ancienne") {
+            assertTrue(change.newCover(ms) > 0f && change.newCover(ms) < 1f, "newCover=${change.newCover(ms)}")
+        }
     }
 }

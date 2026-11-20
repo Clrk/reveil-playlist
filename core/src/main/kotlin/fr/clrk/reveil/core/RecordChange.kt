@@ -24,13 +24,15 @@ data class RecordChange(val endedMs: Long, val startedMs: Long? = null) {
         }
     }
 
-    fun showsNewCover(ms: Long) = ms >= endedMs + STOP_MS
+    /** How far the new cover has been set down on the stopped record: 0 old cover, 1 new cover. */
+    fun newCover(ms: Long): Float = smoothStep(0f, SWAP_MS, ms - endedMs - STOP_MS)
 
     private companion object {
         const val LIFT_MS = 400f
         const val LAND_MS = 500L
         const val STOP_MS = 1200f
         const val SPEED_UP_MS = 1200f
-        const val MIN_PAUSE_MS = 1400L
+        const val MIN_PAUSE_MS = 1800L
+        const val SWAP_MS = 500f
     }
 }

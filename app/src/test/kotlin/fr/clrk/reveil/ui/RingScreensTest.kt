@@ -19,6 +19,7 @@ import fr.clrk.reveil.core.MorningLight
 import fr.clrk.reveil.core.RecordChange
 import fr.clrk.reveil.core.Sky
 import fr.clrk.reveil.core.Tonearm
+import fr.clrk.reveil.ui.ring.Label
 import fr.clrk.reveil.ui.ring.MorningScene
 import fr.clrk.reveil.ui.ring.SceneState
 import org.junit.Rule
@@ -83,7 +84,7 @@ class RingScreensTest {
 
     private fun scene(sky: Sky, seconds: Float, arm: ArmPose) = paparazzi.snapshot {
         val stage = MorningLight(60).at(Duration.ofMillis((seconds * 1000).toLong()))
-        val state = SceneState(stage, sky, thumbnail(), 35f, arm, seconds)
+        val state = SceneState(stage, sky, Label(thumbnail()), 35f, arm, seconds)
         MorningScene(state, Modifier.fillMaxSize().background(Color(0xFF06090B)))
     }
 
