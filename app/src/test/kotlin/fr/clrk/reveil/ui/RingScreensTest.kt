@@ -38,7 +38,7 @@ class RingScreensTest {
     private fun ring(sky: Sky?, seconds: Long, snooze: String? = "10 min · encore 3 fois") =
         ring(sky, Duration.ofSeconds(seconds), snooze)
 
-    private fun ring(sky: Sky?, time: Duration, snooze: String? = "10 min · encore 3 fois") = paparazzi.snapshot {
+    private fun ring(sky: Sky?, time: Duration, snooze: String? = "10 min · encore 3 fois") = paparazzi.settled {
         val weather = sky?.let { DayWeather(HalfDay(it, 4), HalfDay(Sky.CLEAR, 11)) }
         val ui = RingState.Ui("Boulot", "Norah Jones - Come Away With Me", snooze, weather = weather)
         RingScreen(ui, LocalTime.of(7, 0), friday, time) {}
@@ -82,7 +82,7 @@ class RingScreensTest {
 
     private fun paint(color: Color) = Paint().also { it.color = color }
 
-    private fun scene(sky: Sky, seconds: Float, arm: ArmPose) = paparazzi.snapshot {
+    private fun scene(sky: Sky, seconds: Float, arm: ArmPose) = paparazzi.settled {
         val stage = MorningLight(60).at(Duration.ofMillis((seconds * 1000).toLong()))
         val state = SceneState(stage, sky, Label(thumbnail()), 35f, arm, seconds)
         MorningScene(state, Modifier.fillMaxSize().background(Color(0xFF06090B)))
@@ -98,7 +98,7 @@ class RingScreensTest {
     fun platineBrasSouleve() = scene(Sky.CLEAR, 60f, Tonearm.pose(0.3f))
 
     @Test
-    fun sonnerieChangementDeDisque() = paparazzi.snapshot {
+    fun sonnerieChangementDeDisque() = paparazzi.settled {
         val weather = DayWeather(HalfDay(Sky.CLEAR, 4), HalfDay(Sky.CLEAR, 11))
         val ui = RingState.Ui("Boulot", "", "10 min · encore 3 fois", weather = weather, change = RecordChange(60_000))
         RingScreen(ui, LocalTime.of(7, 1), friday, Duration.ofMillis(61_000)) {}

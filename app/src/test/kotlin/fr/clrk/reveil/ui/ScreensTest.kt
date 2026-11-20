@@ -52,7 +52,7 @@ class ScreensTest {
     }
 
     private fun shot(content: @Composable () -> Unit) =
-        paparazzi.snapshot { MaterialTheme(colorScheme = reveilColors()) { content() } }
+        paparazzi.settled { MaterialTheme(colorScheme = reveilColors()) { content() } }
 
     @Test
     fun liste() = shot {

@@ -55,12 +55,13 @@ interface FlowEvents {
 fun NewAlarmFlow(initial: Alarm, onSave: (Alarm) -> Unit, onMore: (Alarm) -> Unit, onClose: () -> Unit) {
     var current by remember(initial) { mutableStateOf(initial) }
     var screen by remember(initial) { mutableStateOf(Step.TIME) }
+    val leave = rememberLeave()
     val events = object : FlowEvents {
         override fun change(alarm: Alarm) { current = alarm }
         override fun go(step: Step) { screen = step }
         override fun more(alarm: Alarm) = onMore(alarm)
-        override fun save(alarm: Alarm) = onSave(alarm)
-        override fun close() = onClose()
+        override fun save(alarm: Alarm) = leave.then { onSave(alarm) }
+        override fun close() = leave.then(onClose)
     }
     if (screen == Step.PLAYLIST) {
         return PlaylistPicker(
@@ -71,8 +72,8 @@ fun NewAlarmFlow(initial: Alarm, onSave: (Alarm) -> Unit, onMore: (Alarm) -> Uni
             onClose = { screen = Step.DAYS },
         )
     }
-    Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Appear { FlowScreen(current, screen, events) }
+    Dialog(onDismissRequest = events::close, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Appear(leave) { FlowScreen(current, screen, events) }
     }
 }
 
@@ -107,7 +108,7 @@ private fun BackButton(step: Step, events: FlowEvents) {
 
 @Composable
 private fun Progress(done: Int) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+    Row(Modifier.fillMaxWidth().reveal(0), horizontalArrangement = Arrangement.Center) {
         repeat(QUESTIONS) { i ->
             val color = if (i < done) Night.EMBER else Night.LINE
             Box(Modifier.padding(3.dp).width(22.dp).height(3.dp).background(color, RoundedCornerShape(2.dp)))
@@ -118,7 +119,7 @@ private fun Progress(done: Int) {
 @Composable
 private fun Question(text: String) =
     Text(
-        text, Modifier.fillMaxWidth().padding(top = 26.dp),
+        text, Modifier.fillMaxWidth().padding(top = 26.dp).reveal(1),
         fontSize = 28.sp, fontWeight = FontWeight.ExtraLight, textAlign = TextAlign.Center,
     )
 
@@ -126,10 +127,10 @@ private fun Question(text: String) =
 private fun androidx.compose.foundation.layout.ColumnScope.TimeStep(alarm: Alarm, events: FlowEvents, now: ZonedDateTime) {
     Progress(1)
     Question("À quelle heure ?")
-    TimeWheel(alarm.time, { events.change(alarm.copy(time = it)) }, Modifier.fillMaxWidth().padding(top = 20.dp))
-    Countdown(alarm, now)
+    TimeWheel(alarm.time, { events.change(alarm.copy(time = it)) }, Modifier.fillMaxWidth().padding(top = 20.dp).reveal(2))
+    Countdown(alarm, now, order = 3)
     Spacer(Modifier.weight(1f))
-    Cta("Suivant", { events.go(Step.DAYS) }, Modifier.padding(bottom = 24.dp))
+    Cta("Suivant", { events.go(Step.DAYS) }, Modifier.padding(bottom = 24.dp).reveal(order = 4))
 }
 
 @Composable
@@ -137,20 +138,21 @@ private fun androidx.compose.foundation.layout.ColumnScope.DaysStep(alarm: Alarm
     Progress(2)
     Question("Quels jours ?")
     Row(Modifier.fillMaxWidth().padding(top = 30.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-        DayOfWeek.entries.forEach { day ->
-            DayDot(day, day in alarm.days) { events.change(alarm.copy(days = Recurrence.toggle(alarm.days, day))) }
+        DayOfWeek.entries.forEachIndexed { i, day ->
+            val toggle = { events.change(alarm.copy(days = Recurrence.toggle(alarm.days, day))) }
+            DayDot(day, day in alarm.days, order = 2 + i / DOTS_PER_BEAT, toggle)
         }
     }
     Shortcuts(alarm.days) { events.change(alarm.copy(days = it)) }
-    Countdown(alarm, now)
+    Countdown(alarm, now, order = 6)
     Spacer(Modifier.weight(1f))
-    Cta("Suivant", { events.go(Step.PLAYLIST) }, Modifier.padding(bottom = 24.dp))
+    Cta("Suivant", { events.go(Step.PLAYLIST) }, Modifier.padding(bottom = 24.dp).reveal(order = 7))
 }
 
 @Composable
-private fun DayDot(day: DayOfWeek, on: Boolean, onClick: () -> Unit) {
+private fun DayDot(day: DayOfWeek, on: Boolean, order: Int, onClick: () -> Unit) {
     Box(
-        Modifier.size(40.dp).background(if (on) Night.EMBER else Night.FROST, CircleShape).clickable(onClick = onClick),
+        Modifier.reveal(order).size(40.dp).background(if (on) Night.EMBER else Night.FROST, CircleShape).clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) { Text(Recurrence.letter(day), color = if (on) Night.ON_EMBER else Night.CAPTION, fontSize = 14.sp) }
 }
@@ -158,7 +160,7 @@ private fun DayDot(day: DayOfWeek, on: Boolean, onClick: () -> Unit) {
 @Composable
 private fun Shortcuts(days: Set<DayOfWeek>, onPick: (Set<DayOfWeek>) -> Unit) {
     androidx.compose.foundation.layout.FlowRow(
-        Modifier.fillMaxWidth().padding(top = 22.dp),
+        Modifier.fillMaxWidth().padding(top = 22.dp).reveal(order = 5),
         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -177,33 +179,35 @@ fun Chip(text: String, on: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun Countdown(alarm: Alarm, now: ZonedDateTime) {
+private fun Countdown(alarm: Alarm, now: ZonedDateTime, order: Int) {
     WakeInfo.announce(alarm, now)?.let {
-        Text(it, Modifier.fillMaxWidth().padding(top = 26.dp), color = Night.EMBER, fontSize = 15.sp, textAlign = TextAlign.Center)
+        val line = Modifier.fillMaxWidth().padding(top = 26.dp).reveal(order)
+        Text(it, line, color = Night.EMBER, fontSize = 15.sp, textAlign = TextAlign.Center)
     }
 }
 
 @Composable
 private fun androidx.compose.foundation.layout.ColumnScope.SummaryStep(alarm: Alarm, events: FlowEvents) {
     Text(
-        clock(alarm.time), Modifier.fillMaxWidth().padding(top = 8.dp),
+        clock(alarm.time), Modifier.fillMaxWidth().padding(top = 8.dp).reveal(0),
         fontSize = 84.sp, fontWeight = FontWeight.Thin, textAlign = TextAlign.Center,
     )
-    Text(Recurrence.summary(alarm.days), Modifier.fillMaxWidth(), color = Night.CAPTION, textAlign = TextAlign.Center)
+    Text(Recurrence.summary(alarm.days), Modifier.fillMaxWidth().reveal(1), color = Night.CAPTION, textAlign = TextAlign.Center)
     PlaylistCard(alarm, events)
     OutlinedTextField(
-        alarm.label, { events.change(alarm.copy(label = it)) }, Modifier.fillMaxWidth().padding(top = 14.dp),
+        alarm.label, { events.change(alarm.copy(label = it)) }, Modifier.fillMaxWidth().padding(top = 14.dp).reveal(order = 3),
         singleLine = true, placeholder = { Text("Nom (facultatif)") },
     )
     SettingsRow(alarm, events)
     Spacer(Modifier.weight(1f))
-    Cta("Programmer le réveil", { events.save(alarm) }, Modifier.padding(bottom = 24.dp), enabled = alarm.playlistId != null)
+    val last = Modifier.padding(bottom = 24.dp).reveal(order = 5)
+    Cta("Programmer le réveil", { events.save(alarm) }, last, enabled = alarm.playlistId != null)
 }
 
 @Composable
 private fun PlaylistCard(alarm: Alarm, events: FlowEvents) {
     Row(
-        Modifier.fillMaxWidth().padding(top = 20.dp).background(Night.FROST, RoundedCornerShape(14.dp))
+        Modifier.fillMaxWidth().padding(top = 20.dp).reveal(2).background(Night.FROST, RoundedCornerShape(14.dp))
             .clickable { events.go(Step.PLAYLIST) }.padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -219,7 +223,7 @@ private fun PlaylistCard(alarm: Alarm, events: FlowEvents) {
 /** The fine settings keep their defaults; "Modifier" opens the full editor. */
 @Composable
 private fun SettingsRow(alarm: Alarm, events: FlowEvents) {
-    val row = Modifier.fillMaxWidth().clickable { events.more(alarm) }.padding(vertical = 14.dp)
+    val row = Modifier.reveal(order = 4).fillMaxWidth().clickable { events.more(alarm) }.padding(vertical = 14.dp)
     Row(row, verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text("Réglages", fontSize = 15.sp)
@@ -239,3 +243,4 @@ private fun duration(seconds: Int) = if (seconds < MINUTE) "$seconds s" else "${
 
 private const val MINUTE = 60
 private const val QUESTIONS = 3
+private const val DOTS_PER_BEAT = 3

@@ -1,6 +1,7 @@
 package fr.clrk.reveil.ui
 
 import android.content.Intent
+import android.os.SystemClock
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.Button
@@ -25,9 +26,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -83,16 +84,17 @@ fun PlaylistPicker(onPick: (PlaylistChoice) -> Unit, onClose: () -> Unit) {
         ui = ui.copy(result = withContext(Dispatchers.IO) { search(ui.query) }, loading = false)
     }
     val context = LocalContext.current
+    val leave = rememberLeave()
     val events = object : PickerEvents {
         override fun query(text: String) { ui = ui.copy(query = text) }
         override fun tab(tab: PickerTab) { ui = ui.copy(tab = tab) }
-        override fun pick(choice: PlaylistChoice) = onPick(choice)
+        override fun pick(choice: PlaylistChoice) = leave.then { onPick(choice) }
         override fun signIn() = login.launch(Intent(context, LoginActivity::class.java))
         override fun signOut() { account.signOut(); ui = ui.copy(library = LibraryUi.NotConnected) }
-        override fun close() = onClose()
+        override fun close() = leave.then(onClose)
     }
-    Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Appear { PlaylistPickerScreen(ui, events) }
+    Dialog(onDismissRequest = events::close, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Appear(leave) { PlaylistPickerScreen(ui, events) }
     }
 }
 
@@ -162,12 +164,13 @@ private fun Library(library: LibraryUi, events: PickerEvents) {
 /** Your playlists as a crate of sleeves, two per row. */
 @Composable
 private fun Crate(playlists: List<PlaylistChoice>, events: PickerEvents) {
+    val opened = remember { SystemClock.uptimeMillis() }
     LazyVerticalGrid(
         GridCells.Fixed(2), Modifier.padding(top = 14.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        items(playlists, key = { it.id.value }) { choice ->
-            Column(Modifier.clickable { events.pick(choice) }) {
+        itemsIndexed(playlists, key = { _, choice -> choice.id.value }) { i, choice ->
+            Column(Modifier.reveal(row(i, 0), opened).clickable { events.pick(choice) }) {
                 Cover(choice.thumbnail, Modifier.fillMaxWidth().aspectRatio(1f))
                 Text(choice.title, Modifier.padding(top = 8.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(subtitle(choice), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -201,7 +204,9 @@ private fun Results(result: SearchResult, onPick: (PlaylistChoice) -> Unit) {
         SearchResult.Idle -> Hint("Cherchez une playlist YouTube Music par nom d'artiste, de genre ou d'ambiance.")
         is SearchResult.Message -> Hint(result.text)
         is SearchResult.Found -> LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            items(result.playlists, key = { it.id.value }) { PlaylistRow(it, Modifier.clickable { onPick(it) }) }
+            itemsIndexed(result.playlists, key = { _, choice -> choice.id.value }) { i, choice ->
+                PlaylistRow(choice, Modifier.reveal(row(i, 0)).clickable { onPick(choice) })
+            }
         }
     }
 }

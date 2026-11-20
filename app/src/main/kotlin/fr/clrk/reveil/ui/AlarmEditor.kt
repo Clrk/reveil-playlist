@@ -53,6 +53,13 @@ interface EditorActions {
     fun close()
 }
 
+/** Saving, deleting or closing lets the editor ease out first. */
+private class Leaving(private val inner: EditorActions, private val leave: Leave) : EditorActions by inner {
+    override fun save(alarm: Alarm) = leave.then { inner.save(alarm) }
+    override fun delete(alarm: Alarm) = leave.then { inner.delete(alarm) }
+    override fun close() = leave.then(inner::close)
+}
+
 object Days {
     private val letters = listOf("L", "M", "M", "J", "V", "S", "D")
     val all = DayOfWeek.entries.zip(letters)
@@ -104,11 +111,13 @@ fun AlarmEditor(
 ) {
     val time = rememberTimePickerState(initial.time.hour, initial.time.minute, is24Hour = true)
     val state = remember(initial) { EditorState(initial, sharedLink, time) }
-    Dialog(onDismissRequest = actions::close, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Appear {
-            EditorScaffold(if (existing) "Modifier le réveil" else "Nouveau réveil", state, actions) {
-                EditorForm(state, actions, now, music)
-                if (existing) SavedAlarmActions(initial, actions)
+    val leave = rememberLeave()
+    val gentle = remember(actions) { Leaving(actions, leave) }
+    Dialog(onDismissRequest = gentle::close, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Appear(leave) {
+            EditorScaffold(if (existing) "Modifier le réveil" else "Nouveau réveil", state, gentle) {
+                EditorForm(state, gentle, now, music)
+                if (existing) SavedAlarmActions(initial, gentle)
             }
         }
     }

@@ -89,7 +89,8 @@ internal fun RingScreen(
                 MorningScene(scene, Modifier.fillMaxSize())
                 val top = Modifier.align(Alignment.TopCenter).systemBarsPadding().padding(top = 48.dp).alpha(light.text)
                 RingClock(now, today, ui.weather, top)
-                Column(Modifier.align(Alignment.BottomCenter).systemBarsPadding().padding(horizontal = 24.dp, vertical = 24.dp)) {
+                val bottom = Modifier.align(Alignment.BottomCenter).systemBarsPadding().padding(24.dp).reveal(2)
+                Column(bottom) {
                     ui.snooze?.let { SnoozeButton(it) { send(RingService.ACTION_SNOOZE) } }
                     Spacer(Modifier.height(16.dp))
                     SlideToStop(onProgress = { slide = it }) { send(RingService.ACTION_DISMISS) }

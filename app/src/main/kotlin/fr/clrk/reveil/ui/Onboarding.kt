@@ -23,17 +23,17 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun OnboardingScreen(steps: List<PermissionStep>, city: String?, onWeather: () -> Unit, onDone: () -> Unit) = NightPage {
     Column(Modifier.fillMaxSize().navigationBarsPadding()) {
-        WaitingTurntable(Modifier.fillMaxWidth().height(230.dp))
+        WaitingTurntable(Modifier.fillMaxWidth().height(230.dp).reveal(0))
         Column(Modifier.padding(horizontal = 24.dp).weight(1f)) {
-            Text("Bonsoir.", fontSize = 40.sp, fontWeight = FontWeight.ExtraLight)
+            Text("Bonsoir.", Modifier.reveal(1), fontSize = 40.sp, fontWeight = FontWeight.ExtraLight)
             Text(
                 "Pour que la musique vous réveille à coup sûr, Android doit autoriser ${count(steps.size)} choses.",
-                Modifier.padding(top = 8.dp, bottom = 12.dp), color = Night.CAPTION, fontSize = 14.sp,
+                Modifier.padding(top = 8.dp, bottom = 12.dp).reveal(2), color = Night.CAPTION, fontSize = 14.sp,
             )
-            steps.forEach { Line(it.title, it.why, if (it.granted) null else "Autoriser", it.fix) }
-            WeatherChoice(city, onWeather)
+            steps.forEachIndexed { i, step -> Line(step.title, step.why, if (step.granted) null else "Autoriser", step.fix, order = 3 + i) }
+            WeatherChoice(city, onWeather, order = 3 + steps.size)
             Spacer(Modifier.weight(1f))
-            Cta(start(steps), onDone, Modifier.padding(bottom = 24.dp))
+            Cta(start(steps), onDone, Modifier.padding(bottom = 24.dp).reveal(order = 4 + steps.size))
         }
     }
 }
@@ -41,16 +41,16 @@ fun OnboardingScreen(steps: List<PermissionStep>, city: String?, onWeather: () -
 private fun start(steps: List<PermissionStep>) = if (steps.all { it.granted }) "C'est parti" else "Continuer"
 
 @Composable
-private fun WeatherChoice(city: String?, onClick: () -> Unit) {
+private fun WeatherChoice(city: String?, onClick: () -> Unit, order: Int) {
     val why = city?.let { "Ville : $it" } ?: "Facultatif. Choisissez votre ville pour voir le temps du matin au réveil."
-    Line("Météo du matin", why, if (city == null) "Choisir" else "Changer", onClick, last = true)
+    Line("Météo du matin", why, if (city == null) "Choisir" else "Changer", onClick, order, last = true)
 }
 
 private fun count(n: Int) = listOf("zéro", "une", "deux", "trois", "quatre").getOrElse(n) { "$n" }
 
 @Composable
-private fun Line(title: String, why: String, action: String?, onClick: () -> Unit, last: Boolean = false) {
-    val row = Modifier.fillMaxWidth().clickable(enabled = action != null, onClick = onClick).padding(vertical = 13.dp)
+private fun Line(title: String, why: String, action: String?, onClick: () -> Unit, order: Int, last: Boolean = false) {
+    val row = Modifier.reveal(order).fillMaxWidth().clickable(enabled = action != null, onClick = onClick).padding(vertical = 13.dp)
     Row(row, verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f).padding(end = 12.dp)) {
             Text(title, fontSize = 16.sp)
@@ -58,5 +58,5 @@ private fun Line(title: String, why: String, action: String?, onClick: () -> Uni
         }
         Text(action ?: "✓", color = Night.EMBER, fontSize = if (action == null) 16.sp else 14.sp)
     }
-    if (!last) HorizontalDivider(color = Night.LINE)
+    if (!last) HorizontalDivider(Modifier.reveal(order), color = Night.LINE)
 }

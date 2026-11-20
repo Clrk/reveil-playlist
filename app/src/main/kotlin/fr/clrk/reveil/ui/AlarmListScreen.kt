@@ -1,5 +1,6 @@
 package fr.clrk.reveil.ui
 
+import android.os.SystemClock
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -15,7 +16,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
@@ -27,6 +28,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -71,29 +73,35 @@ fun AlarmListScreen(ui: ListUi, events: ListEvents) {
         containerColor = Night.BG,
         contentColor = Night.CREAM,
         snackbarHost = { ui.announcement?.let { Announcement(it, ui.undo) } },
-        floatingActionButton = { if (ui.alarms.isNotEmpty()) AddButton(events::add) },
+        floatingActionButton = { if (ui.alarms.isNotEmpty()) AddButton(events::add, Modifier.reveal(row(ui.alarms.size) + 1)) },
     ) { padding ->
         if (ui.alarms.isEmpty()) return@Scaffold EmptyCrate(ui, events, Modifier.padding(padding))
-        LazyColumn(
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 120.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-            modifier = Modifier.padding(padding),
-        ) {
-            item { Header(ui) }
-            items(ui.alarms, key = { it.id }) {
-                Box(Modifier.animateItem()) {
-                    val notes = CardNotes(ui.offline[it.id], ui.skipped[it.id], ui.preparing[it.id])
-                    SwipeToDelete({ events.delete(it) }) { SleeveRow(it, notes, events) }
-                }
-            }
-            item { WeatherFooter(ui.weather, events::weather) }
-        }
+        Crate(ui, events, Modifier.padding(padding))
     }
 }
 
 @Composable
-private fun Header(ui: ListUi) {
-    Column(Modifier.padding(top = 14.dp, bottom = 4.dp)) {
+private fun Crate(ui: ListUi, events: ListEvents, modifier: Modifier) {
+    val opened = remember { SystemClock.uptimeMillis() }
+    LazyColumn(
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 120.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+        modifier = modifier,
+    ) {
+        item { Header(ui, Modifier.reveal(0)) }
+        itemsIndexed(ui.alarms, key = { _, alarm -> alarm.id }) { i, alarm ->
+            Box(Modifier.animateItem().reveal(row(i), opened)) {
+                val notes = CardNotes(ui.offline[alarm.id], ui.skipped[alarm.id], ui.preparing[alarm.id])
+                SwipeToDelete({ events.delete(alarm) }) { SleeveRow(alarm, notes, events) }
+            }
+        }
+        item { WeatherFooter(ui.weather, events::weather, Modifier.reveal(row(ui.alarms.size), opened)) }
+    }
+}
+
+@Composable
+private fun Header(ui: ListUi, modifier: Modifier) {
+    Column(modifier.padding(top = 14.dp, bottom = 4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Réveils", Modifier.weight(1f), fontSize = 26.sp, fontWeight = FontWeight.Light)
             Text("${ui.next.title} · ${ui.next.detail}", color = Night.CAPTION, fontSize = 13.sp, maxLines = 1)
@@ -134,25 +142,25 @@ private val SWITCH
 @Composable
 private fun EmptyCrate(ui: ListUi, events: ListEvents, modifier: Modifier) {
     Column(modifier.fillMaxSize()) {
-        WaitingTurntable(Modifier.fillMaxWidth().height(340.dp))
+        WaitingTurntable(Modifier.fillMaxWidth().height(340.dp).reveal(0))
         Spacer(Modifier.weight(1f))
         Column(Modifier.padding(horizontal = 30.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             ui.warnings.forEach { (text, fix) -> Warning(text, fix) }
-            Text("La platine attend.", fontSize = 30.sp, fontWeight = FontWeight.ExtraLight)
+            Text("La platine attend.", Modifier.reveal(1), fontSize = 30.sp, fontWeight = FontWeight.ExtraLight)
             Text(
                 "Aucun réveil prévu. Les chansons sont gardées sur le téléphone, le réveil sonne même hors ligne.",
-                Modifier.padding(top = 10.dp), color = Night.CAPTION, fontSize = 15.sp, textAlign = TextAlign.Center,
+                Modifier.padding(top = 10.dp).reveal(2), color = Night.CAPTION, fontSize = 15.sp, textAlign = TextAlign.Center,
             )
-            WeatherFooter(ui.weather, events::weather, Modifier.padding(top = 14.dp))
-            Cta("Programmer un réveil", events::add, Modifier.padding(top = 18.dp, bottom = 28.dp))
+            WeatherFooter(ui.weather, events::weather, Modifier.padding(top = 14.dp).reveal(order = 3))
+            Cta("Programmer un réveil", events::add, Modifier.padding(top = 18.dp, bottom = 28.dp).reveal(order = 4))
         }
     }
 }
 
 @Composable
-private fun AddButton(onClick: () -> Unit) {
+private fun AddButton(onClick: () -> Unit, modifier: Modifier) {
     Box(
-        Modifier.padding(4.dp).background(Night.FROST, androidx.compose.foundation.shape.CircleShape)
+        modifier.padding(4.dp).background(Night.FROST, androidx.compose.foundation.shape.CircleShape)
             .clickable(onClick = onClick).padding(horizontal = 20.dp, vertical = 10.dp),
     ) { Text("+", color = Night.EMBER, fontSize = 32.sp, fontWeight = FontWeight.ExtraLight) }
 }

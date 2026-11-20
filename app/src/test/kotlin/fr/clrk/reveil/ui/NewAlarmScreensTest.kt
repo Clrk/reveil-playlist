@@ -30,7 +30,7 @@ class NewAlarmScreensTest {
         override fun close() = Unit
     }
 
-    private fun shot(content: @Composable () -> Unit) = paparazzi.snapshot { MaterialTheme(colorScheme = reveilColors()) { content() } }
+    private fun shot(content: @Composable () -> Unit) = paparazzi.settled { MaterialTheme(colorScheme = reveilColors()) { content() } }
 
     @Test
     fun creationHeure() = shot { FlowScreen(draft, Step.TIME, noEvents, sunday) }
