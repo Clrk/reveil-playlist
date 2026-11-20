@@ -1,6 +1,5 @@
 package fr.clrk.reveil.ui
 
-import kotlin.math.roundToInt
 import android.os.SystemClock
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -58,8 +57,8 @@ data class ListUi(
     val youtubeBroken: Boolean = false,
 )
 
-/** A newer version found on GitHub; [progress] while it downloads. */
-data class UpdateNote(val version: String, val progress: Float? = null)
+/** A newer version found on GitHub. */
+data class UpdateNote(val version: String)
 
 /** Tomorrow morning's weather for the list, once a [city] is chosen. */
 data class WeatherLine(val city: String? = null, val morning: HalfDay? = null)
@@ -136,9 +135,8 @@ private const val YOUTUBE_BROKEN = "YouTube a changé et votre musique risque de
 @Composable
 private fun NewVersion(note: UpdateNote, install: () -> Unit) {
     Row(Modifier.fillMaxWidth().padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-        val text = note.progress?.let { "Téléchargement de la version ${note.version}… ${(it * PERCENT).roundToInt()} %" }
-        Text(text ?: "Nouvelle version ${note.version} disponible", Modifier.weight(1f), color = Night.CAPTION, fontSize = 13.sp)
-        if (note.progress == null) TextButton(onClick = install) { Text("Installer", color = Night.EMBER) }
+        Text("Nouvelle version ${note.version} disponible", Modifier.weight(1f), color = Night.CAPTION, fontSize = 13.sp)
+        TextButton(onClick = install) { Text("Installer", color = Night.EMBER) }
     }
 }
 
@@ -265,4 +263,3 @@ internal fun MusicStatus(text: String, modifier: Modifier = Modifier) {
 
 private const val OFF_ALPHA = 0.45f
 private const val FADE_MS = 450
-private const val PERCENT = 100
