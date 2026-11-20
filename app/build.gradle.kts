@@ -33,7 +33,8 @@ android {
     buildFeatures { compose = true }
     lint {
         warningsAsErrors = true
-        disable += setOf("GradleDependency", "NewerVersionAvailable", "InlinedApi")
+        // Checks whose verdict depends on what was published since, not on this code: they would fail an untouched branch.
+        disable += setOf("GradleDependency", "NewerVersionAvailable", "InlinedApi", "OldTargetApi", "AndroidGradlePluginVersion")
     }
     packaging { resources.excludes += setOf("META-INF/{AL2.0,LGPL2.1}", "META-INF/versions/9/OSGI-INF/MANIFEST.MF") }
 }
