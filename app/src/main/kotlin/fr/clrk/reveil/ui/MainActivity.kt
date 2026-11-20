@@ -63,7 +63,6 @@ class MainActivity : ComponentActivity() {
         onboarded = prefs.getBoolean(ONBOARDED, false)
         readShare(intent)
         refresh()
-        upgrade.check()
         lifecycleScope.launch {
             PrefetchScheduler.nowState(this@MainActivity).collect {
                 download = it
@@ -83,6 +82,7 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         resumed++
         refresh()
+        upgrade.check() // each time the app comes to the front, so a new version shows right away
     }
 
     private fun readShare(intent: Intent?) {
