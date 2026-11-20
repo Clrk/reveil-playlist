@@ -9,6 +9,8 @@ Un réveil Android qui vous réveille avec **votre playlist YouTube Music, en al
 
 ## Installer
 
+Il faut Android 9 ou plus.
+
 1. Téléchargez le dernier `reveil-playlist-X.Y.Z.apk` dans les [Releases](../../releases/latest).
 2. Ouvrez-le sur le téléphone et autorisez l'installation depuis votre navigateur ou gestionnaire de fichiers.
 3. Au premier lancement, autorisez les notifications et l'affichage plein écran : c'est ce qui permet au réveil de sonner écran verrouillé.
@@ -66,9 +68,10 @@ La pièce est dans la nuit quand la musique commence, tout bas. Le volume monte,
 ### 5. Même sans réseau
 
 - La veille au soir, 15 morceaux de la playlist sont téléchargés et renouvelés au fil des réveils. Au réveil, l'app joue d'abord ceux-là, puis passe au streaming.
-- Un morceau qui ne démarre pas en 10 s est sauté. Après 3 échecs de suite, la sonnerie d'alarme du téléphone prend le relais : **le réveil sonne toujours**.
+- Un morceau qui ne démarre pas en 10 s est sauté. Un morceau dont le lien est introuvable est sauté tout de suite. Après 3 échecs de suite, la sonnerie d'alarme du téléphone prend le relais, et si elle-même ne peut pas jouer, l'alarme système d'Android : **le réveil sonne toujours**.
 - Le réveil se déclenche à l'heure même en veille profonde, et se reprogramme après un redémarrage ou un changement d'heure.
 - Arrêt automatique au bout de 30 minutes.
+- Si le téléchargement du soir échoue entièrement, il est retenté plus tard ; lancé à la main (« Préparer maintenant »), l'échec s'affiche.
 
 ### 6. Mises à jour
 
@@ -84,7 +87,9 @@ Monter `versionName` et `versionCode` dans `app/build.gradle.kts`, puis fusionne
 
 ## Contribuer
 
-Les contributions passent par des pull requests sur `main`. Personne ne pousse directement sur `main` : chaque fusion peut publier une version.
+Les contributions passent par des pull requests sur `main`. Personne ne pousse directement sur `main` : chaque fusion peut publier une version. Seule exception, la PR automatique de `newpipe.yml`, qui ne fusionne qu'après le test réel contre YouTube et toute la vérification.
+
+Avant de coder quelque chose d'important, ouvrez une issue pour en parler : ça évite une PR refusée pour une question de direction. Pour un bug, donnez le modèle du téléphone, la version d'Android et celle de l'app.
 
 1. **Une PR = un changement.** Une fonctionnalité, un bug ou un refactor, pas les trois. Une petite PR se relit en dix minutes ; au-delà de ~400 lignes modifiées, découpez.
 2. **Partez d'une branche à jour** de `main`, nommée par le sujet (`fix/sonnerie-secours`, `feat/meteo-vent`).
@@ -100,6 +105,7 @@ Les contributions passent par des pull requests sur `main`. Personne ne pousse d
 8. **Textes de l'app en français, au vouvoiement**, sans tiret cadratin.
 9. **Décrivez la PR** avec le modèle proposé : pourquoi, ce qui change, comment c'est testé, captures. Liez l'issue (`Fixes #12`).
 10. **Ne changez pas la version** dans une PR de contribution : c'est la PR de release qui monte `versionName` / `versionCode`.
+11. **Aucun secret dans le dépôt** : ni keystore, ni mot de passe, ni cookie. La signature se fait uniquement dans `release.yml`, avec les secrets GitHub.
 
 La relecture regarde, dans l'ordre : le contexte, la justesse, la sécurité, les performances, la lisibilité, l'architecture, les tests. Répondez à chaque commentaire (corrigé, ou pourquoi pas) plutôt que de les résoudre en silence. La CI (`check.yml`) relance linters, tests et couverture sur chaque PR. La PR est fusionnée en *squash* quand la CI est verte et qu'une relecture l'a approuvée.
 
@@ -107,7 +113,7 @@ La relecture regarde, dans l'ordre : le contexte, la justesse, la sécurité, le
 
 | Module | Rôle |
 | --- | --- |
-| `core` | Kotlin pur, sans Android : planification, gestion, snooze, lien de playlist, file aléatoire, supervision de lecture, politique de pré-téléchargement. Testé en BDD. |
+| `core` | Kotlin pur, sans Android : planification, snooze, lien et recherche de playlist, file aléatoire, sécurité de la sonnerie (délai, secours, arrêt), pré-téléchargement, lumière et météo de l'écran de réveil, mises à jour et santé de YouTube. Testé en BDD. |
 | `app` | Adaptateurs Android fins : AlarmManager, service de premier plan (Media3/ExoPlayer, `USAGE_ALARM`), NewPipeExtractor, WorkManager, UI Compose. |
 
 L'extraction passe par [NewPipeExtractor](https://github.com/TeamNewPipe/NewPipeExtractor) derrière l'interface `PlaylistSource` : on peut la remplacer par yt-dlp (youtubedl-android) si YouTube casse l'extracteur.
@@ -117,10 +123,13 @@ L'extraction passe par [NewPipeExtractor](https://github.com/TeamNewPipe/NewPipe
 - Scénarios Gherkin en français dans `core/src/test/resources/features`, exécutés par un petit runner maison (`core/src/test/kotlin/.../bdd`). Une étape non définie ou ambiguë fait échouer le scénario.
 - Couverture Kover sur `core` : minimum 95 % en lignes et en branches (`./gradlew :core:koverVerify`).
 - detekt avec complexité cyclomatique ≤ 6, Android lint avec avertissements bloquants.
+- Captures d'écran Paparazzi de chaque écran dans `app/src/test/snapshots` (`:app:verifyPaparazziDebug`).
+- Test réel contre YouTube (`YouTubeSmokeTest`, lancé seulement avec `-Psmoke`), joué chaque matin par `newpipe.yml`.
+- `check.yml` rejoue detekt, tests, couverture et lint sur chaque PR.
 - Hook pré-commit : `git config core.hooksPath scripts/hooks` (refuse les fichiers > 5 000 tokens, lance linters, tests et couverture).
 
 ```sh
-./gradlew detekt :core:test :core:koverVerify :app:lintDebug :app:assembleDebug
+./gradlew detekt :core:test :core:koverVerify :app:lintDebug :app:verifyPaparazziDebug :app:assembleDebug
 ```
 
 ## Limites connues
@@ -132,7 +141,7 @@ L'extraction passe par [NewPipeExtractor](https://github.com/TeamNewPipe/NewPipe
 ## Recette sur téléphone
 
 1. Installer l'APK, autoriser les notifications et l'affichage plein écran (bannière en haut de la liste).
-2. Créer une alarme avec un lien de playlist, appuyer sur « Tester » : la musique démarre, l'écran de réveil s'affiche.
-3. Appuyer sur « Préparer maintenant », attendre une minute, passer en mode avion, puis « Tester » : un morceau en cache est joué.
+2. Créer une alarme avec un lien de playlist, appuyer sur « Tester le réveil » : la musique démarre, l'écran de réveil s'affiche.
+3. Appuyer sur « Préparer maintenant », attendre une minute, passer en mode avion, puis « Tester le réveil » : un morceau en cache est joué.
 4. Mode avion sans cache (nouvelle playlist) : la sonnerie système retentit.
 5. Régler une alarme dans 2 minutes, verrouiller l'écran : l'écran de réveil s'allume.
