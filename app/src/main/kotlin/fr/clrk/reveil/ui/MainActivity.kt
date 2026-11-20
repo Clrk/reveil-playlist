@@ -9,7 +9,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.animation.Crossfade
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -128,12 +133,17 @@ class MainActivity : ComponentActivity() {
         val next = WakeInfo.next(app.alarms.next(), ZonedDateTime.now())
         val skipped = alarms.mapNotNull { a -> WakeInfo.skipped(a, ZoneId.systemDefault())?.let { a.id to it } }.toMap()
         resumed.let { }
-        if (choosingCity) CityPicker(cities) { choosingCity = false; refresh() }
         val city = weather.places.place()?.name
-        Crossfade(onboarded, label = "accueil") { done ->
-            if (done) List(city, next, skipped) else OnboardingScreen(permissions.steps(), city, ::chooseCity, ::finishOnboarding)
+        CompositionLocalProvider(LocalFlight provides remember { Flight() }) {
+            Box(Modifier.fillMaxSize()) {
+                Crossfade(onboarded, label = "accueil") { done ->
+                    if (done) List(city, next, skipped) else OnboardingScreen(permissions.steps(), city, ::chooseCity, ::finishOnboarding)
+                }
+                Editors()
+                if (choosingCity) CityPicker(cities) { choosingCity = false; refresh() }
+                FlightOverlay()
+            }
         }
-        Editors()
     }
 
     @Composable

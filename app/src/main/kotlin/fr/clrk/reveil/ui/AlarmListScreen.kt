@@ -112,13 +112,15 @@ private fun Header(ui: ListUi, modifier: Modifier) {
 
 @Composable
 private fun SleeveRow(alarm: Alarm, notes: CardNotes, events: ListEvents) {
+    val flight = LocalFlight.current
+    val open = { a: Alarm -> flight.takeOff(a.id, EDITOR, a.playlistCover); events.open(a) }
     Row(
-        Modifier.fillMaxWidth().background(Night.CARD, RoundedCornerShape(14.dp)).clickable { events.open(alarm) }.padding(12.dp),
+        Modifier.fillMaxWidth().background(Night.CARD, RoundedCornerShape(14.dp)).clickable { open(alarm) }.padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         val alpha by animateFloatAsState(if (alarm.enabled) 1f else OFF_ALPHA, tween(FADE_MS), label = "on")
         val fade = Modifier.alpha(alpha)
-        Sleeve(alarm.playlistCover, alarm.enabled, 72.dp, fade, notes.preparing)
+        Sleeve(alarm.playlistCover, alarm.enabled, 72.dp, fade, notes.preparing, spot = alarm.id)
         Column(fade.weight(1f).padding(start = 12.dp)) {
             Text(clock(alarm.time, alarm.enabled), fontSize = 40.sp, fontWeight = FontWeight.Thin, lineHeight = 44.sp)
             DayLetters(alarm.days, Modifier.padding(top = 2.dp))

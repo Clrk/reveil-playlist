@@ -56,8 +56,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
 import fr.clrk.reveil.core.PlaylistChoice
 import fr.clrk.reveil.core.PlaylistFinder
@@ -69,9 +67,12 @@ import kotlinx.coroutines.withContext
 
 private const val DEBOUNCE_MS = 500L
 
-/** Full-screen picker: my YouTube Music playlists, or a search (a pasted link works too). */
+/**
+ * Full-screen picker: my YouTube Music playlists, or a search (a pasted link works too).
+ * It sits over the screen it chooses for: [onPick] right away, [onClose] once it has faded out.
+ */
 @Composable
-fun PlaylistPicker(onPick: (PlaylistChoice) -> Unit, onClose: () -> Unit) {
+fun PlaylistPicker(landing: String, onPick: (PlaylistChoice) -> Unit, onClose: () -> Unit) {
     val account = YtMusicAccount(LocalContext.current)
     var ui by remember { mutableStateOf(PickerUi(library = if (account.session == null) LibraryUi.NotConnected else LibraryUi.Loading)) }
     val login = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
@@ -85,15 +86,20 @@ fun PlaylistPicker(onPick: (PlaylistChoice) -> Unit, onClose: () -> Unit) {
     }
     val context = LocalContext.current
     val leave = rememberLeave()
+    val flight = LocalFlight.current
     val events = object : PickerEvents {
         override fun query(text: String) { ui = ui.copy(query = text) }
         override fun tab(tab: PickerTab) { ui = ui.copy(tab = tab) }
-        override fun pick(choice: PlaylistChoice) = leave.then { onPick(choice) }
+        override fun pick(choice: PlaylistChoice) {
+            flight.takeOff(spot(choice), landing, choice.thumbnail)
+            onPick(choice)
+            leave.then(onClose)
+        }
         override fun signIn() = login.launch(Intent(context, LoginActivity::class.java))
         override fun signOut() { account.signOut(); ui = ui.copy(library = LibraryUi.NotConnected) }
         override fun close() = leave.then(onClose)
     }
-    Dialog(onDismissRequest = events::close, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+    Layer(events::close) {
         Appear(leave) { PlaylistPickerScreen(ui, events) }
     }
 }
@@ -171,7 +177,7 @@ private fun Crate(playlists: List<PlaylistChoice>, events: PickerEvents) {
     ) {
         itemsIndexed(playlists, key = { _, choice -> choice.id.value }) { i, choice ->
             Column(Modifier.reveal(row(i, 0), opened).clickable { events.pick(choice) }) {
-                Cover(choice.thumbnail, Modifier.fillMaxWidth().aspectRatio(1f))
+                Cover(choice.thumbnail, Modifier.fillMaxWidth().aspectRatio(1f).spot(spot(choice)))
                 Text(choice.title, Modifier.padding(top = 8.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(subtitle(choice), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -216,15 +222,18 @@ private fun Hint(text: String) = Text(text, Modifier.padding(vertical = 24.dp), 
 
 /** One playlist: cover, title, author and size. Also used in the alarm editor. */
 @Composable
-fun PlaylistRow(choice: PlaylistChoice, modifier: Modifier = Modifier) {
+fun PlaylistRow(choice: PlaylistChoice, modifier: Modifier = Modifier, cover: Modifier = Modifier.spot(spot(choice))) {
     Row(modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Cover(choice.thumbnail, Modifier.size(56.dp))
+        Cover(choice.thumbnail, cover.size(56.dp))
         Column(Modifier.padding(start = 12.dp)) {
             Text(choice.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(subtitle(choice), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
+
+/** Where the cover of [choice] sits in the picker. */
+private fun spot(choice: PlaylistChoice) = "pick:${choice.id.value}"
 
 private fun subtitle(choice: PlaylistChoice) =
     listOfNotNull(choice.author.ifBlank { null }, choice.trackCount.takeIf { it >= 0 }?.let { "$it titres" }).joinToString(" · ")

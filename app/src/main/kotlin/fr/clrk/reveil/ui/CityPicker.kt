@@ -24,8 +24,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import fr.clrk.reveil.core.Place
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -55,7 +53,7 @@ fun CityPicker(source: CitySource, onClose: () -> Unit) {
         withContext(Dispatchers.IO) { source.choose(place) }
         close()
     }
-    Dialog(onDismissRequest = close, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+    Layer(close) {
         Appear(leave) { CityScreen(CityUi(query, found, source.current), { query = it }, { chosen = it }, close) }
     }
 }

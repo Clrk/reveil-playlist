@@ -30,9 +30,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import fr.clrk.reveil.core.Alarm
+import fr.clrk.reveil.core.PlaylistChoice
 import fr.clrk.reveil.core.Recurrence
 import fr.clrk.reveil.core.WakeInfo
 import java.time.DayOfWeek
@@ -55,25 +54,28 @@ interface FlowEvents {
 fun NewAlarmFlow(initial: Alarm, onSave: (Alarm) -> Unit, onMore: (Alarm) -> Unit, onClose: () -> Unit) {
     var current by remember(initial) { mutableStateOf(initial) }
     var screen by remember(initial) { mutableStateOf(Step.TIME) }
+    var picking by remember(initial) { mutableStateOf(false) }
     val leave = rememberLeave()
+    val flight = LocalFlight.current
     val events = object : FlowEvents {
         override fun change(alarm: Alarm) { current = alarm }
-        override fun go(step: Step) { screen = step }
+        override fun go(step: Step) { if (step == Step.PLAYLIST) picking = true else screen = step }
         override fun more(alarm: Alarm) = onMore(alarm)
-        override fun save(alarm: Alarm) = leave.then { onSave(alarm) }
+        override fun save(alarm: Alarm) {
+            flight.takeOff(DRAFT, alarm.id, alarm.playlistCover)
+            leave.then { onSave(alarm) }
+        }
         override fun close() = leave.then(onClose)
     }
-    if (screen == Step.PLAYLIST) {
-        return PlaylistPicker(
-            onPick = {
-                current = current.copy(playlistId = it.id.value, playlistTitle = it.title, playlistCover = it.thumbnail)
-                screen = Step.SUMMARY
-            },
-            onClose = { screen = Step.DAYS },
-        )
-    }
-    Dialog(onDismissRequest = events::close, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+    Layer(events::close) {
         Appear(leave) { FlowScreen(current, screen, events) }
+    }
+    if (picking) {
+        val pick = { choice: PlaylistChoice ->
+            current = current.copy(playlistId = choice.id.value, playlistTitle = choice.title, playlistCover = choice.thumbnail)
+            screen = Step.SUMMARY
+        }
+        PlaylistPicker(DRAFT, onPick = pick, onClose = { picking = false })
     }
 }
 
@@ -211,7 +213,7 @@ private fun PlaylistCard(alarm: Alarm, events: FlowEvents) {
             .clickable { events.go(Step.PLAYLIST) }.padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Sleeve(alarm.playlistCover, true, 60.dp)
+        Sleeve(alarm.playlistCover, true, 60.dp, spot = DRAFT)
         Column(Modifier.weight(1f).padding(start = 12.dp)) {
             Text(alarm.playlistTitle ?: "Aucune playlist", fontSize = 16.sp)
             Text("Morceaux préparés la veille au soir", color = Night.CAPTION, fontSize = 12.sp)
@@ -243,4 +245,7 @@ private fun duration(seconds: Int) = if (seconds < MINUTE) "$seconds s" else "${
 
 private const val MINUTE = 60
 private const val QUESTIONS = 3
+
+/** Where the cover of the alarm being created sits, on the summary. */
+internal const val DRAFT = "draft"
 private const val DOTS_PER_BEAT = 3

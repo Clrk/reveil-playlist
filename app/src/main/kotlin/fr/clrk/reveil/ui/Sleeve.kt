@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
@@ -34,15 +35,17 @@ private const val SLIDE_MS = 450
 
 /**
  * A record sleeve with its playlist [cover]; the disc slides [out] of it when the alarm is on.
+ * A sleeve at a [spot] hides while its cover flies, and lets its disc out once it has landed.
  * While the music is being prepared, the cover fills up from the bottom to [progress], under an ember line.
  */
 @Composable
-fun Sleeve(cover: String?, out: Boolean, size: Dp, modifier: Modifier = Modifier, progress: Float? = null) {
-    val slide by animateFloatAsState(if (out) 1f else 0f, tween(SLIDE_MS), label = "disc")
-    Box(modifier.size(width = size * (1 + DISC_OUT), height = size)) {
+fun Sleeve(cover: String?, out: Boolean, size: Dp, modifier: Modifier = Modifier, progress: Float? = null, spot: String? = null) {
+    val landed = landed(spot)
+    val slide by animateFloatAsState(if (out && landed) 1f else 0f, tween(SLIDE_MS), label = "disc")
+    Box(modifier.size(width = size * (1 + DISC_OUT), height = size).alpha(if (landed) 1f else 0f)) {
         val shift = Modifier.offset { IntOffset((size * (0.04f + DISC_OUT * slide)).roundToPx(), 0) }
         Disc(Modifier.size(size * 0.92f).align(Alignment.CenterStart).then(shift))
-        Cover(cover, Modifier.size(size).shadow(6.dp, RoundedCornerShape(4.dp)))
+        Cover(cover, Modifier.size(size).spot(spot).shadow(6.dp, RoundedCornerShape(4.dp)))
         progress?.let { Filling(it, Modifier.size(size).clip(RoundedCornerShape(4.dp))) }
     }
 }

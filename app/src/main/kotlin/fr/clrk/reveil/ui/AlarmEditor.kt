@@ -18,8 +18,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.TopAppBar
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import fr.clrk.reveil.core.WakeInfo
 import java.time.ZonedDateTime
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -54,8 +52,11 @@ interface EditorActions {
 }
 
 /** Saving, deleting or closing lets the editor ease out first. */
-private class Leaving(private val inner: EditorActions, private val leave: Leave) : EditorActions by inner {
-    override fun save(alarm: Alarm) = leave.then { inner.save(alarm) }
+private class Leaving(private val inner: EditorActions, private val leave: Leave, private val flight: Flight) : EditorActions by inner {
+    override fun save(alarm: Alarm) {
+        flight.takeOff(EDITOR, alarm.id, alarm.playlistCover)
+        leave.then { inner.save(alarm) }
+    }
     override fun delete(alarm: Alarm) = leave.then { inner.delete(alarm) }
     override fun close() = leave.then(inner::close)
 }
@@ -112,8 +113,9 @@ fun AlarmEditor(
     val time = rememberTimePickerState(initial.time.hour, initial.time.minute, is24Hour = true)
     val state = remember(initial) { EditorState(initial, sharedLink, time) }
     val leave = rememberLeave()
-    val gentle = remember(actions) { Leaving(actions, leave) }
-    Dialog(onDismissRequest = gentle::close, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+    val flight = LocalFlight.current
+    val gentle = remember(actions) { Leaving(actions, leave, flight) }
+    Layer(gentle::close) {
         Appear(leave) {
             EditorScaffold(if (existing) "Modifier le réveil" else "Nouveau réveil", state, gentle) {
                 EditorForm(state, gentle, now, music)
@@ -122,7 +124,7 @@ fun AlarmEditor(
         }
     }
     if (state.picking) {
-        PlaylistPicker(onPick = { state.playlist = it; state.picking = false }, onClose = { state.picking = false })
+        PlaylistPicker(EDITOR, onPick = { state.playlist = it }, onClose = { state.picking = false })
     }
 }
 
@@ -194,7 +196,7 @@ private fun PlaylistField(state: EditorState, music: (String) -> String?, action
 
 @Composable
 private fun MusicSummary(choice: PlaylistChoice, status: String?) {
-    PlaylistRow(choice)
+    PlaylistRow(choice, cover = Modifier.spot(EDITOR))
     status?.let { MusicStatus(it, Modifier.padding(bottom = 12.dp)) }
 }
 
@@ -220,3 +222,6 @@ private fun DayChips(days: Set<DayOfWeek>, onChange: (Set<DayOfWeek>) -> Unit) {
         }
     }
 }
+
+/** Where the cover sits in the full editor. */
+const val EDITOR = "editor"
