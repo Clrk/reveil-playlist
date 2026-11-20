@@ -8,6 +8,9 @@ object Turntable {
     private const val MS_PER_MINUTE = 60_000f
     private const val TURN = 360f
 
+    /** Rotation at full speed, in degrees per millisecond. */
+    const val DEGREES_PER_MS = RPM * TURN / MS_PER_MINUTE
+
     /** Share of full speed, from 0 (still) to 1. */
     fun speed(elapsedMs: Long): Float = ((elapsedMs - SPIN_FROM_MS) / SPEED_UP_MS).coerceIn(0f, 1f)
 
@@ -17,6 +20,6 @@ object Turntable {
     fun angle(elapsedMs: Long): Float {
         val running = (elapsedMs - SPIN_FROM_MS).coerceAtLeast(0).toFloat()
         val fullSpeedMs = if (running < SPEED_UP_MS) running * running / (2 * SPEED_UP_MS) else running - SPEED_UP_MS / 2
-        return fullSpeedMs * RPM * TURN / MS_PER_MINUTE % TURN
+        return fullSpeedMs * DEGREES_PER_MS % TURN
     }
 }

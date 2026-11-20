@@ -9,6 +9,7 @@ import fr.clrk.reveil.core.DayWeather
 import fr.clrk.reveil.core.FallbackPlaylistSource
 import fr.clrk.reveil.core.PlaylistId
 import fr.clrk.reveil.core.PlaylistSource
+import fr.clrk.reveil.core.RecordChange
 import fr.clrk.reveil.core.WakeQueueBuilder
 import fr.clrk.reveil.core.WakeSession
 import fr.clrk.reveil.core.WakeSource
@@ -66,6 +67,8 @@ object RingState {
         val startedAt: Long = System.currentTimeMillis(),
         val rampSeconds: Int = Alarm.DEFAULT_RAMP_SECONDS,
         val weather: DayWeather? = null,
+        val change: RecordChange? = null,
+        val previousCover: String? = null,
     )
 
     val ui = kotlinx.coroutines.flow.MutableStateFlow<Ui?>(null)
@@ -83,6 +86,22 @@ object RingState {
         val track = (source as? WakeSource.Music)?.track
         ui.value = ui.value?.copy(nowPlaying = track?.title ?: "Sonnerie de secours", cover = track?.let { cover(it.id) })
     }
+
+    /** The track is over (or failed): the record starts changing, keeping the old cover until it stops. */
+    fun ended() {
+        val current = ui.value ?: return
+        if (current.change != null && current.change.startedMs == null) return
+        ui.value = current.copy(change = RecordChange(sinceStart(current)), previousCover = current.cover)
+    }
+
+    /** The next track really plays: the arm may land. */
+    fun started() {
+        val current = ui.value ?: return
+        val change = current.change?.takeIf { it.startedMs == null } ?: return
+        ui.value = current.copy(change = change.copy(startedMs = sinceStart(current)))
+    }
+
+    private fun sinceStart(current: Ui) = System.currentTimeMillis() - current.startedAt
 
     fun hide() { ui.value = null }
 

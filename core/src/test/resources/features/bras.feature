@@ -44,3 +44,11 @@ Fonctionnalité: Le bras de la platine se relève quand on arrête
   Scénario: Ensuite le disque tourne à 33 tours
     Quand la sonnerie dure depuis "5000" ms
     Alors le disque tourne à "33" tours par minute
+
+  Scénario: Le bras ondule très légèrement avec le disque, un peu voilé
+    Quand le disque tourne à pleine vitesse
+    Alors le bras monte et descend d'au plus "1" pixel à chaque tour
+
+  Scénario: Disque arrêté, le bras ne bouge pas
+    Quand le disque est arrêté
+    Alors le bras ne monte ni ne descend

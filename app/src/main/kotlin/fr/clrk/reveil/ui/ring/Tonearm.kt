@@ -18,7 +18,7 @@ import kotlin.math.sin
 internal fun DrawScope.tonearm(pose: ArmPose, light: Float) {
     val angle = Math.toRadians((PLAY + (REST - PLAY) * pose.swing).toDouble())
     val dir = Offset(cos(angle).toFloat(), sin(angle).toFloat())
-    val lift = LIFT * pose.lift
+    val lift = LIFT * pose.lift + pose.bob
     // The arm is a lever hinged on its post: the head rises, the counterweight dips, the post stays put.
     val pivotTop = project(PIVOT, POST)
     val head = project(PIVOT + dir * (LENGTH - HEAD), HEAD_H + lift + 2f)

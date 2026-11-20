@@ -25,17 +25,15 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil3.compose.rememberAsyncImagePainter
 import fr.clrk.reveil.alarm.RingService
 import fr.clrk.reveil.alarm.RingState
 import fr.clrk.reveil.core.DayWeather
 import fr.clrk.reveil.core.MorningLight
-import fr.clrk.reveil.core.Tonearm
-import fr.clrk.reveil.core.Turntable
 import fr.clrk.reveil.ui.ring.MorningScene
 import fr.clrk.reveil.ui.ring.RingClock
 import fr.clrk.reveil.ui.ring.SceneState
 import fr.clrk.reveil.ui.ring.SnoozeButton
+import fr.clrk.reveil.ui.ring.rememberDeck
 import fr.clrk.reveil.ui.ring.rememberElapsed
 import java.time.Duration
 import java.time.LocalDate
@@ -82,13 +80,12 @@ internal fun RingScreen(
     val time = elapsed ?: rememberElapsed(ui.startedAt)
     val light = MorningLight(ui.rampSeconds).at(time)
     var slide by remember { mutableFloatStateOf(0f) }
-    val cover = ui.cover?.let { rememberAsyncImagePainter(it) }
     MaterialTheme(colorScheme = RingColors) {
         Surface(Modifier.fillMaxSize()) {
             Box(Modifier.fillMaxSize()) {
-                val arm = if (slide > 0f) Tonearm.pose(slide) else Tonearm.start(time.toMillis())
+                val deck = rememberDeck(ui, time.toMillis(), slide, fixed = elapsed != null)
                 val sky = DayWeather.sceneOf(ui.weather)
-                val scene = SceneState(light, sky, cover, Turntable.angle(time.toMillis()), arm, time.toMillis() / MS_PER_SECOND)
+                val scene = SceneState(light, sky, deck.cover, deck.spin, deck.arm, time.toMillis() / MS_PER_SECOND)
                 MorningScene(scene, Modifier.fillMaxSize())
                 val top = Modifier.align(Alignment.TopCenter).systemBarsPadding().padding(top = 48.dp).alpha(light.text)
                 RingClock(now, today, ui.weather, top)

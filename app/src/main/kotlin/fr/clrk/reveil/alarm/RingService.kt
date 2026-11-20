@@ -138,6 +138,7 @@ class RingService : Service() {
 
     private fun onFailure() {
         if (session?.current == WakeSource.Ringtone) return lastResortRingtone()
+        RingState.ended()
         session?.onFailed()
         playCurrent()
     }
@@ -152,6 +153,7 @@ class RingService : Service() {
 
     private inner class PlayerEvents : Player.Listener {
         override fun onIsPlayingChanged(isPlaying: Boolean) {
+            if (isPlaying) RingState.started()
             val current = session?.current as? WakeSource.Music ?: return
             if (!isPlaying) return
             watchdog?.cancel()
@@ -161,6 +163,7 @@ class RingService : Service() {
 
         override fun onPlaybackStateChanged(state: Int) {
             if (state == Player.STATE_ENDED && session?.current is WakeSource.Music) {
+                RingState.ended()
                 session?.onEnded()
                 playCurrent()
             }

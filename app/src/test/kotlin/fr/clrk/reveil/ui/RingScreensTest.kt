@@ -16,6 +16,7 @@ import fr.clrk.reveil.core.ArmPose
 import fr.clrk.reveil.core.DayWeather
 import fr.clrk.reveil.core.HalfDay
 import fr.clrk.reveil.core.MorningLight
+import fr.clrk.reveil.core.RecordChange
 import fr.clrk.reveil.core.Sky
 import fr.clrk.reveil.core.Tonearm
 import fr.clrk.reveil.ui.ring.MorningScene
@@ -94,6 +95,13 @@ class RingScreensTest {
 
     @Test
     fun platineBrasSouleve() = scene(Sky.CLEAR, 60f, Tonearm.pose(0.3f))
+
+    @Test
+    fun sonnerieChangementDeDisque() = paparazzi.snapshot {
+        val weather = DayWeather(HalfDay(Sky.CLEAR, 4), HalfDay(Sky.CLEAR, 11))
+        val ui = RingState.Ui("Boulot", "", "10 min · encore 3 fois", weather = weather, change = RecordChange(60_000))
+        RingScreen(ui, LocalTime.of(7, 1), friday, Duration.ofMillis(61_000)) {}
+    }
 
     @Test
     fun sonnerieSansMeteoNiSnooze() = ring(null, 60, snooze = null)
