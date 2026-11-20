@@ -19,6 +19,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberSwipeToDismissBoxState
@@ -97,12 +99,12 @@ private fun Header(ui: ListUi) {
 @Composable
 private fun SleeveRow(alarm: Alarm, notes: CardNotes, events: ListEvents) {
     Row(
-        Modifier.fillMaxWidth().background(Night.CARD, RoundedCornerShape(14.dp)).padding(12.dp)
-            .alpha(if (alarm.enabled) 1f else OFF_ALPHA),
+        Modifier.fillMaxWidth().background(Night.CARD, RoundedCornerShape(14.dp)).clickable { events.open(alarm) }.padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Sleeve(alarm.playlistCover, alarm.enabled, 86.dp, Modifier.clickable { events.toggle(alarm, !alarm.enabled) })
-        Column(Modifier.weight(1f).padding(start = 14.dp).clickable { events.open(alarm) }) {
+        val fade = Modifier.alpha(if (alarm.enabled) 1f else OFF_ALPHA)
+        Sleeve(alarm.playlistCover, alarm.enabled, 72.dp, fade)
+        Column(fade.weight(1f).padding(start = 12.dp)) {
             Text(clock(alarm.time, alarm.enabled), fontSize = 40.sp, fontWeight = FontWeight.Thin, lineHeight = 44.sp)
             DayLetters(alarm.days, Modifier.padding(top = 2.dp))
             val names = listOfNotNull(alarm.label.ifBlank { null }, alarm.playlistTitle).joinToString(" · ")
@@ -110,8 +112,16 @@ private fun SleeveRow(alarm: Alarm, notes: CardNotes, events: ListEvents) {
             notes.offline?.let { MusicStatus(it) }
             notes.skipped?.let { Skipped(it) { events.unskip(alarm) } }
         }
+        Switch(alarm.enabled, { events.toggle(alarm, it) }, colors = SWITCH)
     }
 }
+
+private val SWITCH
+    @Composable get() = SwitchDefaults.colors(
+        checkedThumbColor = Night.EMBER, checkedTrackColor = Night.EMBER.copy(alpha = 0.3f),
+        checkedBorderColor = Night.EMBER.copy(alpha = 0f),
+        uncheckedThumbColor = Night.DIM, uncheckedTrackColor = Night.LINE, uncheckedBorderColor = Night.DIM,
+    )
 
 /** No alarm yet: the turntable waits, with one clear way to set the first alarm. */
 @Composable
