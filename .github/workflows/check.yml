@@ -1,0 +1,22 @@
+name: Check
+
+# Every pull request must pass the same gate as local work before it can be merged.
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Linters, tests and coverage
+        env:
+          LANG: C.UTF-8
+          LC_ALL: C.UTF-8
+        run: ./gradlew --no-daemon detekt :core:test :core:koverVerify :app:lintDebug

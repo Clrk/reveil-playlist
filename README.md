@@ -82,6 +82,27 @@ L'app interroge les releases de ce dépôt. La première fois, Android demande d
 
 Monter `versionName` et `versionCode` dans `app/build.gradle.kts`, puis fusionner sur `main`. Le workflow [`release.yml`](.github/workflows/release.yml) compile, signe l'APK et publie la release `vX.Y.Z` si elle n'existe pas encore. Secrets nécessaires : `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`.
 
+## Contribuer
+
+Les contributions passent par des pull requests sur `main`. Personne ne pousse directement sur `main` : chaque fusion peut publier une version.
+
+1. **Une PR = un changement.** Une fonctionnalité, un bug ou un refactor, pas les trois. Une petite PR se relit en dix minutes ; au-delà de ~400 lignes modifiées, découpez.
+2. **Partez d'une branche à jour** de `main`, nommée par le sujet (`fix/sonnerie-secours`, `feat/meteo-vent`).
+3. **Le comportement d'abord, en scénario.** Toute règle nouvelle ou corrigée s'écrit en `.feature` français (Soit / Quand / Alors), sans parler du code. Lancez-le et regardez-le échouer avant d'écrire le code. Pas d'étape vide ni « en attente ».
+4. **Un bug = un test qui le reproduit.** Expliquez la cause dans la PR, ajoutez le scénario qui échoue pour la bonne raison, puis corrigez la cause, pas le symptôme.
+5. **La logique va dans `core`**, testable sans téléphone. `app` ne fait que brancher Android.
+6. **Tout est vert en local avant d'ouvrir la PR** :
+   ```sh
+   ./gradlew detekt :core:test :core:koverVerify :app:lintDebug :app:verifyPaparazziDebug
+   ```
+   Couverture ≥ 95 % en lignes et en branches, aucun avertissement detekt ou lint, fichiers sous 5 000 tokens (le hook `scripts/hooks` le vérifie).
+7. **Un changement visible montre son résultat.** Si l'écran change, enregistrez les captures (`:app:recordPaparazziDebug`), commitez-les et mettez un avant / après (capture ou GIF) dans la PR.
+8. **Textes de l'app en français, au vouvoiement**, sans tiret cadratin.
+9. **Décrivez la PR** avec le modèle proposé : pourquoi, ce qui change, comment c'est testé, captures. Liez l'issue (`Fixes #12`).
+10. **Ne changez pas la version** dans une PR de contribution : c'est la PR de release qui monte `versionName` / `versionCode`.
+
+La relecture regarde, dans l'ordre : le contexte, la justesse, la sécurité, les performances, la lisibilité, l'architecture, les tests. Répondez à chaque commentaire (corrigé, ou pourquoi pas) plutôt que de les résoudre en silence. La CI (`check.yml`) relance linters, tests et couverture sur chaque PR ; elle est fusionnée en *squash* quand la CI est verte et qu'une relecture l'a approuvée.
+
 ## Architecture
 
 | Module | Rôle |
