@@ -121,7 +121,8 @@ private fun SleeveRow(alarm: Alarm, notes: CardNotes, events: ListEvents) {
         val alpha by animateFloatAsState(if (alarm.enabled) 1f else OFF_ALPHA, tween(FADE_MS), label = "on")
         val fade = Modifier.alpha(alpha)
         Sleeve(alarm.playlistCover, alarm.enabled, 72.dp, fade, notes.preparing, spot = alarm.id)
-        Column(fade.weight(1f).padding(start = 12.dp)) {
+        val words = Modifier.alpha(arrival(alarm.id))
+        Column(fade.weight(1f).then(words).padding(start = 12.dp)) {
             Text(clock(alarm.time, alarm.enabled), fontSize = 40.sp, fontWeight = FontWeight.Thin, lineHeight = 44.sp)
             DayLetters(alarm.days, Modifier.padding(top = 2.dp))
             val names = listOfNotNull(alarm.label.ifBlank { null }, alarm.playlistTitle).joinToString(" · ")
@@ -129,8 +130,18 @@ private fun SleeveRow(alarm: Alarm, notes: CardNotes, events: ListEvents) {
             notes.offline?.let { MusicStatus(it) }
             notes.skipped?.let { Skipped(it) { events.unskip(alarm) } }
         }
-        Switch(alarm.enabled, { events.toggle(alarm, it) }, colors = SWITCH)
+        Switch(alarm.enabled, { events.toggle(alarm, it) }, words, colors = SWITCH)
     }
+}
+
+/** A new alarm's words wait for its cover to land on the card, then arrive. */
+@Composable
+private fun arrival(key: String): Float {
+    val flight = LocalFlight.current
+    val born = remember { flight.landing(key) }
+    val hidden = born && flight.landing(key)
+    val shown by animateFloatAsState(if (hidden) 0f else 1f, tween(Calm.ARRIVE_MS, easing = Calm.EASE), label = "words")
+    return shown
 }
 
 private val SWITCH

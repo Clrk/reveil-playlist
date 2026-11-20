@@ -70,7 +70,7 @@ fun <T> Turn(target: T, forward: (from: T, to: T) -> Boolean = { _, _ -> true },
             val glide = tween<IntOffset>(OPEN_MS, easing = Calm.EASE)
             val enter = fadeIn(tween(OPEN_MS, CLOSE_MS / 2, Calm.EASE)) + slideInHorizontally(glide) { sign * it / SHIFT }
             enter togetherWith
-                (fadeOut(tween(CLOSE_MS)) + slideOutHorizontally(tween(CLOSE_MS)) { -sign * it / SHIFT })
+                (fadeOut(tween(CLOSE_MS, easing = Calm.AWAY)) + slideOutHorizontally(tween(CLOSE_MS)) { -sign * it / SHIFT })
         },
     ) { content(it) }
 }

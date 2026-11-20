@@ -52,13 +52,17 @@ interface EditorActions {
 }
 
 /** Saving, deleting or closing lets the editor ease out first. */
-private class Leaving(private val inner: EditorActions, private val leave: Leave, private val flight: Flight) : EditorActions by inner {
+private class Leaving(private val inner: EditorActions, private val leave: Leave, private val flight: Flight, private val home: Alarm?) :
+    EditorActions by inner {
     override fun save(alarm: Alarm) {
         flight.takeOff(EDITOR, alarm.id, alarm.playlistCover)
         leave.then { inner.save(alarm) }
     }
     override fun delete(alarm: Alarm) = leave.then { inner.delete(alarm) }
-    override fun close() = leave.then(inner::close)
+    override fun close() {
+        home?.let { flight.takeOff(EDITOR, it.id, it.playlistCover) }
+        leave.then(inner::close)
+    }
 }
 
 object Days {
@@ -114,7 +118,7 @@ fun AlarmEditor(
     val state = remember(initial) { EditorState(initial, sharedLink, time) }
     val leave = rememberLeave()
     val flight = LocalFlight.current
-    val gentle = remember(actions) { Leaving(actions, leave, flight) }
+    val gentle = remember(actions) { Leaving(actions, leave, flight, initial.takeIf { existing }) }
     Layer(gentle::close) {
         Appear(leave) {
             EditorScaffold(if (existing) "Modifier le réveil" else "Nouveau réveil", state, gentle) {
@@ -150,17 +154,25 @@ private fun EditorScaffold(title: String, state: EditorState, actions: EditorAct
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EditorForm(state: EditorState, actions: EditorActions, now: () -> ZonedDateTime, music: (String) -> String?) {
-    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-        TimeWheel(LocalTime.of(state.time.hour, state.time.minute), state::setTime, Modifier.fillMaxWidth())
-        Text(WakeInfo.announce(state.alarm(), now()).orEmpty(), color = MaterialTheme.colorScheme.primary)
+    Arrives(order = 0, waits = false) { PlaylistField(state, music, actions) }
+    Arrives(order = 1) {
+        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+            TimeWheel(LocalTime.of(state.time.hour, state.time.minute), state::setTime, Modifier.fillMaxWidth())
+            Text(WakeInfo.announce(state.alarm(), now()).orEmpty(), color = MaterialTheme.colorScheme.primary)
+        }
     }
-    DayChips(state.days) { state.days = it }
-    OutlinedTextField(state.label, { state.label = it }, Modifier.fillMaxWidth(), label = { Text("Nom") }, singleLine = true)
-    PlaylistField(state, music, actions)
-    Choices("Montée du volume", RAMP_CHOICES, state.ramp) { state.ramp = it }
-    Choices("Snooze (minutes)", SNOOZE_CHOICES, state.snooze) { state.snooze = it }
-    Choices("Snoozes au maximum", MAX_SNOOZE_CHOICES, state.maxSnoozes) { state.maxSnoozes = it }
-    TextButton(onClick = { actions.test(state.alarm()) }) { Text("Tester le réveil") }
+    Arrives(order = 2) { DayChips(state.days) { state.days = it } }
+    Arrives(order = 3) {
+        OutlinedTextField(state.label, { state.label = it }, Modifier.fillMaxWidth(), label = { Text("Nom") }, singleLine = true)
+    }
+    Arrives(order = 4) {
+        Column {
+            Choices("Montée du volume", RAMP_CHOICES, state.ramp) { state.ramp = it }
+            Choices("Snooze (minutes)", SNOOZE_CHOICES, state.snooze) { state.snooze = it }
+            Choices("Snoozes au maximum", MAX_SNOOZE_CHOICES, state.maxSnoozes) { state.maxSnoozes = it }
+            TextButton(onClick = { actions.test(state.alarm()) }) { Text("Tester le réveil") }
+        }
+    }
 }
 
 @Composable

@@ -29,6 +29,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
+import kotlin.math.PI
+import kotlin.math.sin
 
 /**
  * The one thread between screens: the playlist cover. It leaves its spot on one screen
@@ -44,6 +46,12 @@ class Flight {
     fun takeOff(from: String, to: String, cover: String?) {
         trip = spots[from]?.let { Trip(from, to, cover, it, spots[to]) }
     }
+
+    /** True while a cover is in the air: the screen it lands on waits before showing the rest. */
+    val flying get() = trip != null
+
+    /** True while a cover is on its way to spot [key]. */
+    fun landing(key: String) = trip?.to == key
 
     /** True while the cover of spot [key] is in the air, leaving or landing. */
     fun away(key: String) = trip.let { it != null && (it.from == key || it.to == key) }
@@ -87,9 +95,11 @@ fun FlightOverlay() {
         flight.land()
     }
     val box = trip.box(travel.value)
+    val height = sin(PI.toFloat() * travel.value)
     with(LocalDensity.current) {
-        val place = Modifier.offset { IntOffset(box.left.toInt(), box.top.toInt()) }.size(box.width.toDp(), box.height.toDp())
-        Cover(trip.cover, place.shadow(LIFT, RoundedCornerShape(4.dp)))
+        val arc = (ARC.toPx() * height).toInt()
+        val place = Modifier.offset { IntOffset(box.left.toInt(), box.top.toInt() - arc) }.size(box.width.toDp(), box.height.toDp())
+        Cover(trip.cover, place.shadow(REST + LIFT * height, RoundedCornerShape(4.dp)))
     }
 }
 
@@ -100,6 +110,10 @@ fun Layer(onBack: () -> Unit, content: @Composable () -> Unit) {
     Box(Modifier.fillMaxSize()) { content() }
 }
 
-private const val FLY_MS = 560
+private const val FLY_MS = 480
 private const val LOST_MS = 900L
-private val LIFT = 14.dp
+private val REST = 6.dp
+private val LIFT = 18.dp
+
+/** The cover is lifted from the shelf: it rises a little mid-way, its shadow growing, then settles. */
+private val ARC = 28.dp

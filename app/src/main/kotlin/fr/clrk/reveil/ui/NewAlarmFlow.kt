@@ -209,7 +209,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.SummaryStep(alarm: Al
 @Composable
 private fun PlaylistCard(alarm: Alarm, events: FlowEvents) {
     Row(
-        Modifier.fillMaxWidth().padding(top = 20.dp).reveal(2).background(Night.FROST, RoundedCornerShape(14.dp))
+        Modifier.fillMaxWidth().padding(top = 20.dp).reveal(0, waits = false).background(Night.FROST, RoundedCornerShape(14.dp))
             .clickable { events.go(Step.PLAYLIST) }.padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

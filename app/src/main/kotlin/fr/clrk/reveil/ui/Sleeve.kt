@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -41,7 +42,7 @@ private const val SLIDE_MS = 450
 @Composable
 fun Sleeve(cover: String?, out: Boolean, size: Dp, modifier: Modifier = Modifier, progress: Float? = null, spot: String? = null) {
     val landed = landed(spot)
-    val slide by animateFloatAsState(if (out && landed) 1f else 0f, tween(SLIDE_MS), label = "disc")
+    val slide by animateFloatAsState(if (out && landed) 1f else 0f, tween(SLIDE_MS, discWait(landed)), label = "disc")
     Box(modifier.size(width = size * (1 + DISC_OUT), height = size).alpha(if (landed) 1f else 0f)) {
         val shift = Modifier.offset { IntOffset((size * (0.04f + DISC_OUT * slide)).roundToPx(), 0) }
         Disc(Modifier.size(size * 0.92f).align(Alignment.CenterStart).then(shift))
@@ -49,6 +50,16 @@ fun Sleeve(cover: String?, out: Boolean, size: Dp, modifier: Modifier = Modifier
         progress?.let { Filling(it, Modifier.size(size).clip(RoundedCornerShape(4.dp))) }
     }
 }
+
+/** Once a cover has landed, its disc waits a beat, so that the card's words arrive first. */
+@Composable
+private fun discWait(landed: Boolean): Int {
+    val flew = remember { BooleanArray(1) }
+    if (!landed) flew[0] = true
+    return if (flew[0]) DISC_WAIT_MS else 0
+}
+
+private const val DISC_WAIT_MS = 260
 
 /** The playlist picture, or a warm placeholder while there is none. */
 @Composable
