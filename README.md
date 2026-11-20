@@ -81,10 +81,6 @@ La pièce est dans la nuit quand la musique commence, tout bas. Le volume monte,
 
 L'app interroge les releases de ce dépôt. La première fois, Android demande d'autoriser Réveil Playlist à installer ses mises à jour. Ensuite elle se télécharge seule en Wi-Fi : sur Android 12 et plus elle s'installe sans rien demander ; avant Android 12, une notification propose de l'installer d'un geste. Jamais pendant une sonnerie, un snooze ou dans l'heure qui précède un réveil. Le bandeau reste là pour installer à la main.
 
-## Publier une version
-
-Monter `versionName` et `versionCode` dans `app/build.gradle.kts`, puis fusionner sur `main`. Le workflow [`release.yml`](.github/workflows/release.yml) compile, signe l'APK et publie la release `vX.Y.Z` si elle n'existe pas encore. Secrets nécessaires : `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`.
-
 ## Contribuer
 
 Les contributions passent par des pull requests sur `main`. Personne ne pousse directement sur `main` : chaque fusion peut publier une version. Seule exception, la PR automatique de `newpipe.yml`, qui ne fusionne qu'après le test réel contre YouTube et toute la vérification.
@@ -104,7 +100,7 @@ Avant de coder quelque chose d'important, ouvrez une issue pour en parler : ça 
 7. **Un changement visible montre son résultat.** Si l'écran change, enregistrez les captures (`:app:recordPaparazziDebug`), commitez-les et mettez un avant / après (capture ou GIF) dans la PR.
 8. **Textes de l'app en français, au vouvoiement**, sans tiret cadratin.
 9. **Décrivez la PR** avec le modèle proposé : pourquoi, ce qui change, comment c'est testé, captures. Liez l'issue (`Fixes #12`).
-10. **Ne changez pas la version** dans une PR de contribution : c'est la PR de release qui monte `versionName` / `versionCode`.
+10. **Ne changez pas la version** dans une PR de contribution : le mainteneur s'en charge au moment de publier.
 11. **Aucun secret dans le dépôt** : ni keystore, ni mot de passe, ni cookie. La signature se fait uniquement dans `release.yml`, avec les secrets GitHub.
 
 La relecture regarde, dans l'ordre : le contexte, la justesse, la sécurité, les performances, la lisibilité, l'architecture, les tests. Répondez à chaque commentaire (corrigé, ou pourquoi pas) plutôt que de les résoudre en silence. La CI (`check.yml`) relance linters, tests et couverture sur chaque PR. La PR est fusionnée en *squash* quand la CI est verte et qu'une relecture l'a approuvée.
