@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Généré par tools/icon/icon.py : ne pas modifier à la main. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+    <path android:pathData="M23.50,54.00a30.50,30.50 0 1,0 61.00,0a30.50,30.50 0 1,0 -61.00,0ZM37.00,54.00a17.00,17.00 0 1,0 34.00,0a17.00,17.00 0 1,0 -34.00,0Z" android:fillColor="#000000" android:fillType="evenOdd"/>
+    <path android:pathData="M46.00,57.50a8.00,8.00 0 0,1 16.00,0Z" android:fillColor="#000000" android:fillType="evenOdd"/>
+    <path android:pathData="M40,58.7h28v1.8h-28Z" android:fillColor="#000000" android:fillType="evenOdd"/>
+    <path android:pathData="M45,62.5h18v1.6h-18Z" android:fillColor="#000000" android:fillType="evenOdd"/>
+</vector>
