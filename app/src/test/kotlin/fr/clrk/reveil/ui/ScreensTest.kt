@@ -66,6 +66,11 @@ class ScreensTest {
     }
 
     @Test
+    fun listeYouTubeEnPanne() = shot {
+        AlarmListScreen(ListUi(listOf(boulot, weekend), next, offline = ready, youtubeBroken = true), noListEvents)
+    }
+
+    @Test
     fun listeMiseAJour() = shot {
         AlarmListScreen(ListUi(listOf(boulot, weekend), next, offline = ready, update = UpdateNote("0.9.8")), noListEvents)
     }

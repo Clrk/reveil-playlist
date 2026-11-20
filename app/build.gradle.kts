@@ -61,3 +61,6 @@ dependencies {
 
     testImplementation("junit:junit:4.13.2")
 }
+
+// `-Psmoke` runs YouTubeSmokeTest against the real YouTube (daily workflow); it is skipped otherwise.
+tasks.withType<Test>().configureEach { systemProperty("smoke", (findProperty("smoke") != null).toString()) }

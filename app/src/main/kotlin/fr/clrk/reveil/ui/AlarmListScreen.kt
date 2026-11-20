@@ -55,6 +55,7 @@ data class ListUi(
     val weather: WeatherLine = WeatherLine(),
     val preparing: Map<String, Float> = emptyMap(),
     val update: UpdateNote? = null,
+    val youtubeBroken: Boolean = false,
 )
 
 /** A newer version found on GitHub; [progress] while it downloads. */
@@ -120,12 +121,16 @@ private fun Header(ui: ListUi, events: ListEvents, modifier: Modifier) {
     }
 }
 
-/** What needs the person's attention, one line each: missing permissions, then a newer version. */
+/** What needs the person's attention, one line each: missing permissions, YouTube, then a newer version. */
 @Composable
 private fun Notices(ui: ListUi, events: ListEvents) {
     ui.warnings.forEach { (text, fix) -> Warning(text, fix) }
+    if (ui.youtubeBroken) Text(YOUTUBE_BROKEN, Modifier.padding(top = 10.dp), color = Night.WARN, fontSize = 13.sp)
     ui.update?.let { NewVersion(it, events::update) }
 }
+
+private const val YOUTUBE_BROKEN = "YouTube a changé et votre musique risque de ne pas se lancer. " +
+    "Le réveil sonnera quand même avec la sonnerie d'alarme, le temps qu'une mise à jour arrive."
 
 /** One line, like the warnings: a newer version, and one tap to install it. */
 @Composable

@@ -16,6 +16,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -29,6 +30,7 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import fr.clrk.reveil.music.PrefetchScheduler
+import fr.clrk.reveil.music.YouTubeHealth
 import fr.clrk.reveil.update.Updater
 import fr.clrk.reveil.weather.WeatherRepository
 import fr.clrk.reveil.core.Place
@@ -152,7 +154,8 @@ class MainActivity : ComponentActivity() {
         val line = WeatherLine(city, weather.tomorrow())
         val progress = music.preparing(alarms, fetching, download)
         val offline = music.offline(alarms, fetching, download)
-        val ui = ListUi(alarms, next, permissions.warnings(), offline, announcement, skipped, undo, line, progress, upgrade.note)
+        val broken by YouTubeHealth.broken.collectAsState()
+        val ui = ListUi(alarms, next, permissions.warnings(), offline, announcement, skipped, undo, line, progress, upgrade.note, broken)
         AlarmListScreen(ui, listEvents)
         LaunchedEffect(announcement) {
             delay(ANNOUNCE_MS)

@@ -126,7 +126,7 @@ L'extraction passe par [NewPipeExtractor](https://github.com/TeamNewPipe/NewPipe
 ## Limites connues
 
 - La couche Android n'a que des captures d'écran automatisées (Paparazzi) : le reste se vérifie sur un téléphone (voir la recette ci-dessous).
-- YouTube change régulièrement son site ; si l'extraction casse, mettre à jour NewPipeExtractor. La sonnerie de secours garantit que le réveil sonne quand même.
+- YouTube change régulièrement son site. Chaque matin, le workflow [`newpipe.yml`](.github/workflows/newpipe.yml) teste l'app contre le vrai YouTube et passe à la dernière version de NewPipeExtractor dès qu'elle sort : si les tests passent, la version est publiée et les téléphones se mettent à jour seuls ; sinon une issue est ouverte. Dans l'app, un message prévient quand YouTube ne répond plus comme prévu, et la sonnerie de secours garantit que le réveil sonne quand même.
 - Les alarmes ne sonnent pas entre un redémarrage et le premier déverrouillage du téléphone.
 
 ## Recette sur téléphone

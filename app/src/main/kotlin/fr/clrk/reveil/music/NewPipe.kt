@@ -51,7 +51,9 @@ class NewPipeDownloader private constructor(val client: OkHttpClient) : Download
 class NewPipePlaylistSource(private val maxTracks: Int = MAX_TRACKS) : PlaylistSource {
     private val service = ServiceList.YouTube
 
-    override fun tracks(id: PlaylistId): List<Track> {
+    override fun tracks(id: PlaylistId): List<Track> = YouTubeHealth.watch { list(id) }
+
+    private fun list(id: PlaylistId): List<Track> {
         val info = PlaylistInfo.getInfo(service, id.url)
         val items = info.relatedItems.toMutableList()
         var page: Page? = info.nextPage
@@ -72,7 +74,9 @@ class NewPipePlaylistSource(private val maxTracks: Int = MAX_TRACKS) : PlaylistS
 
 /** Finds a playable audio stream URL for a track. */
 object AudioResolver {
-    fun streamUrl(track: Track): String {
+    fun streamUrl(track: Track): String = YouTubeHealth.watch { bestStream(track) }
+
+    private fun bestStream(track: Track): String {
         val info = StreamInfo.getInfo(ServiceList.YouTube, "https://www.youtube.com/watch?v=${track.id}")
         val best = info.audioStreams.filter { it.isUrl }.maxWithOrNull(compareBy<AudioStream>({ it.isM4a() }, { it.averageBitrate }))
         return requireNotNull(best) { "Aucun flux audio pour ${track.id}" }.content
