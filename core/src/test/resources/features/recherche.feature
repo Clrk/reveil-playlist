@@ -19,7 +19,7 @@ Fonctionnalité: Trouver une playlist YouTube Music sans coller de lien
   Scénario: Sans réseau ou si YouTube refuse, la recherche l'indique
     Soit le téléphone est hors-ligne
     Quand je cherche "matin"
-    Alors on m'indique "YouTube Music ne répond pas. Vérifie ta connexion et réessaie."
+    Alors on m'indique "YouTube Music ne répond pas. Vérifiez votre connexion et réessayez."
 
   Scénario: Une recherche sans résultat l'indique
     Quand je cherche "zzzz"

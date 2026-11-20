@@ -31,6 +31,10 @@ private fun StepRegistry<AlarmWorld>.creationSteps() {
         val created = service.create(Formats.time(time), Formats.days(days), label, playlistId = playlist)
         remember(service.update(created.copy(playlistTitle = values[4])))
     }
+    step("$REPEATED avec la playlist \"([^\"]+)\" nommée \"([^\"]+)\" et la pochette \"([^\"]+)\"") { values ->
+        val created = service.create(Formats.time(values[1]), Formats.days(values[2]), values[0], playlistId = values[3])
+        remember(service.update(created.copy(playlistTitle = values[4], playlistCover = values[5])))
+    }
     step("$REPEATED avec un snooze de \"(\\d+)\" minutes") { (label, time, days, minutes) ->
         remember(service.create(Formats.time(time), Formats.days(days), label, snoozeMinutes = minutes.toInt()))
     }
@@ -141,6 +145,7 @@ private fun StepRegistry<AlarmWorld>.snoozeAssertions() {
     step("le volume de $ALARM monte sur \"(\\d+)\" secondes") { (label, seconds) ->
         assertEquals(seconds.toInt(), alarm(label).rampSeconds)
     }
+    step("la pochette de $ALARM est \"([^\"]+)\"") { (label, cover) -> assertEquals(cover, alarm(label).playlistCover) }
     step("$ALARM n'a pas de snooze en attente") { (label) ->
         assertNull(phone.planned[TriggerKey(id(label), TriggerKey.Kind.SNOOZE)])
     }

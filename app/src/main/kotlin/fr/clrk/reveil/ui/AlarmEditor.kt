@@ -28,7 +28,6 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TimeInput
 import androidx.compose.material3.TimePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
@@ -79,9 +78,15 @@ private class EditorState(private val initial: Alarm, sharedLink: String, val ti
     var maxSnoozes by mutableStateOf(initial.maxSnoozes)
     var ramp by mutableStateOf(initial.rampSeconds)
 
+    fun setTime(value: LocalTime) {
+        time.hour = value.hour
+        time.minute = value.minute
+    }
+
     fun alarm() = initial.copy(
         time = LocalTime.of(time.hour, time.minute), days = days, label = label,
-        playlistId = playlist?.id?.value, playlistTitle = playlist?.title, snoozeMinutes = snooze, enabled = true,
+        playlistId = playlist?.id?.value, playlistTitle = playlist?.title,
+        playlistCover = playlist?.thumbnail, snoozeMinutes = snooze, enabled = true,
         maxSnoozes = maxSnoozes, rampSeconds = ramp,
     )
 }
@@ -133,7 +138,7 @@ private fun EditorScaffold(title: String, state: EditorState, actions: EditorAct
 @Composable
 private fun EditorForm(state: EditorState, actions: EditorActions, now: () -> ZonedDateTime, music: (String) -> String?) {
     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-        TimeInput(state.time)
+        TimeWheel(LocalTime.of(state.time.hour, state.time.minute), state::setTime, Modifier.fillMaxWidth())
         Text(WakeInfo.announce(state.alarm(), now()).orEmpty(), color = MaterialTheme.colorScheme.primary)
     }
     DayChips(state.days) { state.days = it }
@@ -185,7 +190,7 @@ private fun MusicSummary(choice: PlaylistChoice, status: String?) {
 private fun initialChoice(alarm: Alarm, sharedLink: String): PlaylistChoice? {
     PlaylistLink.parse(sharedLink)?.let { return PlaylistChoice(it, "Playlist partagée") }
     val id = alarm.playlistId?.let(::PlaylistId) ?: return null
-    return PlaylistChoice(id, alarm.playlistTitle ?: "Playlist ${id.value}")
+    return PlaylistChoice(id, alarm.playlistTitle ?: "Playlist ${id.value}", thumbnail = alarm.playlistCover)
 }
 
 @Composable

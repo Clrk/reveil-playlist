@@ -25,7 +25,7 @@ class OpenMeteoTest {
 
     @Test
     fun `asks the hourly code and temperature of the place`() {
-        val url = OpenMeteo.url(Place.CLAIX)
+        val url = OpenMeteo.url(Place("Claix", 45.1206, 5.6728))
         assertTrue("latitude=45.1206&longitude=5.6728" in url && "weather_code,temperature_2m" in url, url)
     }
 }

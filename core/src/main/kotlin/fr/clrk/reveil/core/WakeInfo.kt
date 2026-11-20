@@ -23,7 +23,7 @@ object WakeInfo {
         NextTrigger.after(alarm, now)?.let { "Réveil dans ${Countdown.between(now, it)}" }
 
     fun next(next: Pair<Alarm, ZonedDateTime>?, now: ZonedDateTime): NextCard {
-        val (alarm, at) = next ?: return NextCard("Aucun réveil prévu", "Appuie sur + pour en créer un")
+        val (alarm, at) = next ?: return NextCard("Aucun réveil prévu", "Touchez + pour en créer un")
         val detail = listOf("dans ${Countdown.between(now, at)}", alarm.label).filter { it.isNotBlank() }.joinToString(" · ")
         return NextCard(at.format(day), detail)
     }

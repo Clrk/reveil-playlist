@@ -44,6 +44,6 @@ class PlaylistFinder(private val search: PlaylistSearch) {
 
     private companion object {
         const val MIN_QUERY = 2
-        const val OFFLINE = "YouTube Music ne répond pas. Vérifie ta connexion et réessaie."
+        const val OFFLINE = "YouTube Music ne répond pas. Vérifiez votre connexion et réessayez."
     }
 }

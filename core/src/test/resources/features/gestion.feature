@@ -98,3 +98,8 @@ Fonctionnalité: Gestion des alarmes
     Soit l'alarme "Boulot" à "07:30" répétée "lun" sans limite de snoozes
     Quand l'application redémarre
     Alors l'alarme "Boulot" n'a pas de limite de snoozes
+
+  Scénario: La pochette de la playlist est gardée avec l'alarme
+    Soit l'alarme "Boulot" à "07:00" répétée "lun" avec la playlist "PL1" nommée "Chill matin" et la pochette "https://img/chill.jpg"
+    Quand l'application redémarre
+    Alors la pochette de l'alarme "Boulot" est "https://img/chill.jpg"

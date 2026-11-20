@@ -25,6 +25,8 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import fr.clrk.reveil.music.PrefetchScheduler
+import fr.clrk.reveil.weather.WeatherRepository
+import fr.clrk.reveil.core.Place
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -33,6 +35,9 @@ import java.time.ZonedDateTime
 class MainActivity : ComponentActivity() {
     private var alarms by mutableStateOf(emptyList<Alarm>())
     private var editing by mutableStateOf<Alarm?>(null)
+    private var creating by mutableStateOf<Alarm?>(null)
+    private var choosingCity by mutableStateOf(false)
+    private val weather by lazy { WeatherRepository(this) }
     private var sharedLink by mutableStateOf("")
     private var announcement by mutableStateOf<String?>(null)
     private var download by mutableStateOf<WakeInfo.Download?>(null)
@@ -88,7 +93,8 @@ class MainActivity : ComponentActivity() {
     }
 
     private val listEvents = object : ListEvents {
-        override fun add() { editing = Alarm.at(LocalTime.of(DEFAULT_HOUR, 0)) }
+        override fun add() { creating = Alarm.at(LocalTime.of(DEFAULT_HOUR, 0)) }
+        override fun weather() { choosingCity = true }
         override fun open(alarm: Alarm) { editing = alarm }
         override fun unskip(alarm: Alarm) { app.alarms.unskip(alarm.id); changed() }
         override fun delete(alarm: Alarm) = deleteWithUndo(alarm)
@@ -104,16 +110,36 @@ class MainActivity : ComponentActivity() {
         val next = WakeInfo.next(app.alarms.next(), ZonedDateTime.now())
         val skipped = alarms.mapNotNull { a -> WakeInfo.skipped(a, ZoneId.systemDefault())?.let { a.id to it } }.toMap()
         resumed.let { }
-        if (!onboarded) return OnboardingScreen(permissions.steps()) { finishOnboarding() }
-        AlarmListScreen(ListUi(alarms, next, permissions.warnings(), offline(), announcement, skipped, undo), listEvents)
+        if (choosingCity) CityPicker(cities) { choosingCity = false; refresh() }
+        val city = weather.places.place()?.name
+        if (!onboarded) return OnboardingScreen(permissions.steps(), city, { choosingCity = true }) { finishOnboarding() }
+        val line = WeatherLine(city, weather.tomorrow())
+        val ui = ListUi(alarms, next, permissions.warnings(), offline(), announcement, skipped, undo, line)
+        AlarmListScreen(ui, listEvents)
         LaunchedEffect(announcement) {
             delay(ANNOUNCE_MS)
             announcement = null
             undo = null
         }
+        Editors()
+    }
+
+    /** The new alarm steps, or the full editor of an alarm. */
+    @Composable
+    private fun Editors() {
+        creating?.let { draft ->
+            val more = { alarm: Alarm -> creating = null; editing = alarm }
+            NewAlarmFlow(draft, onSave = { creating = null; actions.save(it) }, onMore = more, onClose = { creating = null })
+        }
         editing?.let { edited ->
             AlarmEditor(edited, sharedLink, actions, existing = alarms.any { it.id == edited.id }, music = ::musicStatus)
         }
+    }
+
+    private val cities = object : CitySource {
+        override val current get() = weather.places.place()
+        override fun search(query: String) = weather.search(query)
+        override fun choose(place: Place) = weather.choose(place)
     }
 
     private fun finishOnboarding() {

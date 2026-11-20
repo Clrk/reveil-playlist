@@ -22,6 +22,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -94,7 +99,7 @@ fun PlaylistPicker(onPick: (PlaylistChoice) -> Unit, onClose: () -> Unit) {
 private suspend fun loadLibrary(account: YtMusicAccount): LibraryUi = withContext(Dispatchers.IO) {
     runCatching { account.library() }.fold(
         { LibraryUi.Loaded(it) },
-        { LibraryUi.Failed("Impossible de lire ta bibliothèque YouTube Music. Reconnecte-toi ou réessaie.") },
+        { LibraryUi.Failed("Impossible de lire votre bibliothèque YouTube Music. Reconnectez-vous ou réessayez.") },
     )
 }
 
@@ -111,7 +116,7 @@ fun PlaylistPickerScreen(ui: PickerUi, events: PickerEvents) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Choisir une playlist") },
+                title = { Text("Quelle playlist demain ?") },
                 navigationIcon = { IconButton(onClick = events::close) { Icon(Icons.Default.ArrowBack, "Retour") } },
             )
         },
@@ -148,10 +153,25 @@ private fun Library(library: LibraryUi, events: PickerEvents) {
             Hint(library.message)
             OutlinedButton(onClick = events::signIn) { Text("Se reconnecter") }
         }
-        is LibraryUi.Loaded -> LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            items(library.playlists, key = { it.id.value }) { PlaylistRow(it, Modifier.clickable { events.pick(it) }) }
-            item { TextButton(onClick = events::signOut) { Text("Se déconnecter de YouTube Music") } }
+        is LibraryUi.Loaded -> Crate(library.playlists, events)
+    }
+}
+
+/** Your playlists as a crate of sleeves, two per row. */
+@Composable
+private fun Crate(playlists: List<PlaylistChoice>, events: PickerEvents) {
+    LazyVerticalGrid(
+        GridCells.Fixed(2), Modifier.padding(top = 14.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        items(playlists, key = { it.id.value }) { choice ->
+            Column(Modifier.clickable { events.pick(choice) }) {
+                Cover(choice.thumbnail, Modifier.fillMaxWidth().aspectRatio(1f))
+                Text(choice.title, Modifier.padding(top = 8.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(subtitle(choice), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
+        item(span = { GridItemSpan(2) }) { TextButton(onClick = events::signOut) { Text("Se déconnecter de YouTube Music") } }
     }
 }
 
@@ -159,14 +179,14 @@ private fun Library(library: LibraryUi, events: PickerEvents) {
 private fun SignInCard(events: PickerEvents) {
     Card(Modifier.fillMaxWidth().padding(top = 16.dp)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Retrouve tes playlists", style = MaterialTheme.typography.titleMedium)
+            Text("Retrouvez vos playlists", style = MaterialTheme.typography.titleMedium)
             Text(
-                "Connecte-toi à YouTube Music une fois pour voir tes playlists, " +
-                    "y compris privées, et tes titres « J'aime ». Pas besoin d'abonnement.",
+                "Connectez-vous une fois à YouTube Music pour voir vos playlists, " +
+                    "même privées, et vos titres « J'aime ». Pas besoin d'abonnement.",
             )
             Button(onClick = events::signIn) { Text("Se connecter à YouTube Music") }
             Text(
-                "Ta session reste uniquement sur ce téléphone.",
+                "La session reste sur ce téléphone.",
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
@@ -176,7 +196,7 @@ private fun SignInCard(events: PickerEvents) {
 @Composable
 private fun Results(result: SearchResult, onPick: (PlaylistChoice) -> Unit) {
     when (result) {
-        SearchResult.Idle -> Hint("Cherche une playlist YouTube Music par nom d'artiste, de genre ou d'ambiance.")
+        SearchResult.Idle -> Hint("Cherchez une playlist YouTube Music par nom d'artiste, de genre ou d'ambiance.")
         is SearchResult.Message -> Hint(result.text)
         is SearchResult.Found -> LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             items(result.playlists, key = { it.id.value }) { PlaylistRow(it, Modifier.clickable { onPick(it) }) }
@@ -191,20 +211,11 @@ private fun Hint(text: String) = Text(text, Modifier.padding(vertical = 24.dp), 
 @Composable
 fun PlaylistRow(choice: PlaylistChoice, modifier: Modifier = Modifier) {
     Row(modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Cover(choice.thumbnail)
+        Cover(choice.thumbnail, Modifier.size(56.dp))
         Column(Modifier.padding(start = 12.dp)) {
             Text(choice.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(subtitle(choice), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-    }
-}
-
-@Composable
-private fun Cover(url: String?) {
-    val shape = Modifier.size(56.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.primaryContainer)
-    Box(shape, contentAlignment = Alignment.Center) {
-        Text("♪", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onPrimaryContainer)
-        url?.let { AsyncImage(it, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
     }
 }
 

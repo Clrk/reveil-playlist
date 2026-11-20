@@ -44,6 +44,7 @@ private data class AlarmRecord(
     val snoozeCount: Int = 0,
     val rampSeconds: Int = Alarm.DEFAULT_RAMP_SECONDS,
     val skipped: Long? = null,
+    val playlistCover: String? = null,
 ) {
     fun toAlarm() = Alarm(
         id = id,
@@ -59,6 +60,7 @@ private data class AlarmRecord(
         snoozeCount = snoozeCount,
         rampSeconds = rampSeconds,
         skipped = skipped?.let { Instant.ofEpochMilli(it) },
+        playlistCover = playlistCover,
     )
 
     companion object {
@@ -79,6 +81,7 @@ private data class AlarmRecord(
             snoozeCount = alarm.snoozeCount,
             rampSeconds = alarm.rampSeconds,
             skipped = alarm.skipped?.toEpochMilli(),
+            playlistCover = alarm.playlistCover,
         )
     }
 }

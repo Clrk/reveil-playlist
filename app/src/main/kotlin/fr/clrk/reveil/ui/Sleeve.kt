@@ -1,0 +1,69 @@
+@file:Suppress("MagicNumber") // proportions of the drawn record
+package fr.clrk.reveil.ui
+
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
+
+private const val DISC_OUT = 0.5f
+private const val SLIDE_MS = 450
+
+/** A record sleeve with its playlist [cover]; the disc slides [out] of it when the alarm is on. */
+@Composable
+fun Sleeve(cover: String?, out: Boolean, size: Dp, modifier: Modifier = Modifier) {
+    val slide by animateFloatAsState(if (out) 1f else 0f, tween(SLIDE_MS), label = "disc")
+    Box(modifier.size(width = size * (1 + DISC_OUT), height = size)) {
+        val shift = Modifier.offset { IntOffset((size * (0.04f + DISC_OUT * slide)).roundToPx(), 0) }
+        Disc(Modifier.size(size * 0.92f).align(Alignment.CenterStart).then(shift))
+        Cover(cover, Modifier.size(size).shadow(6.dp, RoundedCornerShape(4.dp)))
+    }
+}
+
+/** The playlist picture, or a warm placeholder while there is none. */
+@Composable
+fun Cover(url: String?, modifier: Modifier = Modifier) {
+    val shape = RoundedCornerShape(4.dp)
+    Box(modifier.clip(shape).background(PLACEHOLDER), contentAlignment = Alignment.Center) {
+        Text("♪", color = Night.CREAM.copy(alpha = 0.6f), fontSize = 22.sp)
+        url?.let { AsyncImage(it, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
+    }
+}
+
+private val PLACEHOLDER = Brush.linearGradient(listOf(Color(0xFF2B2233), Color(0xFF8A4F6E), Color(0xFFE6B58A)))
+
+/** Black vinyl: grooves, a faint sheen and the ember label. */
+@Composable
+private fun Disc(modifier: Modifier) {
+    Canvas(modifier) {
+        val r = size.minDimension / 2
+        drawCircle(Color(0xFF1B1B1B), r)
+        for (i in 0 until GROOVES) drawCircle(Color(0xFF3C3C3C), r * (0.42f + 0.56f * i / GROOVES), style = Stroke(0.6f))
+        drawCircle(Color(0x47E6D6C4), r, style = Stroke(1.5f))
+        drawCircle(Night.EMBER, r * 0.3f)
+        drawCircle(Color(0xFF151515), r * 0.03f)
+    }
+}
+
+private const val GROOVES = 14

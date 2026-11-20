@@ -6,13 +6,6 @@ import kotlinx.serialization.json.Json
 import java.time.LocalDate
 import java.time.LocalDateTime
 
-/** Place whose weather is shown; Claix (Isère) until the user picks another one. */
-data class Place(val name: String, val latitude: Double, val longitude: Double) {
-    companion object {
-        val CLAIX = Place("Claix", 45.1206, 5.6728)
-    }
-}
-
 /** Open-Meteo hourly forecast (free, no key): URL to call and how to read it. */
 object OpenMeteo {
     private val json = Json { ignoreUnknownKeys = true }

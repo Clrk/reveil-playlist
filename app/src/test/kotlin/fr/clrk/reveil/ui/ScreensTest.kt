@@ -1,11 +1,12 @@
 package fr.clrk.reveil.ui
 
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import app.cash.paparazzi.DeviceConfig
 import app.cash.paparazzi.Paparazzi
 import fr.clrk.reveil.core.Alarm
+import fr.clrk.reveil.core.HalfDay
+import fr.clrk.reveil.core.Sky
 import fr.clrk.reveil.core.PlaylistChoice
 import fr.clrk.reveil.core.PlaylistId
 import fr.clrk.reveil.core.SearchResult
@@ -30,6 +31,8 @@ class ScreensTest {
     private val sunday = ZonedDateTime.of(2026, 11, 15, 22, 48, 0, 0, ZoneId.of("Europe/Paris"))
     private val ready = mapOf("1" to "✓ Prête pour le réveil, même hors ligne")
 
+    private val matin = WeatherLine("Claix", HalfDay(Sky.CLEAR, 4))
+
     private val noActions = object : EditorActions {
         override fun save(alarm: Alarm) = Unit
         override fun delete(alarm: Alarm) = Unit
@@ -45,14 +48,15 @@ class ScreensTest {
         override fun toggle(alarm: Alarm, enabled: Boolean) = Unit
         override fun unskip(alarm: Alarm) = Unit
         override fun delete(alarm: Alarm) = Unit
+        override fun weather() = Unit
     }
 
     private fun shot(content: @Composable () -> Unit) =
-        paparazzi.snapshot { MaterialTheme(colorScheme = lightColorScheme()) { content() } }
+        paparazzi.snapshot { MaterialTheme(colorScheme = reveilColors()) { content() } }
 
     @Test
     fun liste() = shot {
-        AlarmListScreen(ListUi(listOf(boulot, weekend), next, offline = ready), noListEvents)
+        AlarmListScreen(ListUi(listOf(boulot, weekend), next, offline = ready, weather = matin), noListEvents)
     }
 
     @Test
@@ -114,7 +118,7 @@ class ScreensTest {
 
     @Test
     fun rechercheErreur() {
-        val message = SearchResult.Message("YouTube Music ne répond pas. Vérifie ta connexion et réessaie.")
+        val message = SearchResult.Message("YouTube Music ne répond pas. Vérifiez votre connexion et réessayez.")
         picker(PickerUi("matin", message, tab = PickerTab.SEARCH))
     }
 
@@ -141,16 +145,16 @@ class ScreensTest {
     @Test
     fun accueil() = shot {
         val steps = listOf(
-            PermissionStep("Notifications", "Pour sonner et afficher le rappel une heure avant.", "", true) {},
+            PermissionStep("Notifications", "Pour sonner, et vous rappeler le réveil une heure avant.", "", true) {},
             PermissionStep("Plein écran", "Pour afficher le réveil par-dessus l'écran verrouillé.", "", false) {},
-            PermissionStep("Batterie", "Pour télécharger tes musiques la veille, même téléphone en veille.", "", false) {},
+            PermissionStep("Batterie", "Pour préparer vos morceaux la veille, téléphone en veille.", "", false) {},
         )
-        OnboardingScreen(steps) {}
+        OnboardingScreen(steps, null, {}) {}
     }
 
     @Test
     fun listeVide() = shot {
-        val none = WakeInfo.NextCard("Aucun réveil prévu", "Appuie sur + pour en créer un")
+        val none = WakeInfo.NextCard("Aucun réveil prévu", "Touchez + pour en créer un")
         AlarmListScreen(ListUi(emptyList(), none), noListEvents)
     }
 }
