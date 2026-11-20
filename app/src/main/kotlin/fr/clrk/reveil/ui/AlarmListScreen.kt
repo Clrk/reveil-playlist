@@ -113,12 +113,12 @@ private fun Header(ui: ListUi, modifier: Modifier) {
 @Composable
 private fun SleeveRow(alarm: Alarm, notes: CardNotes, events: ListEvents) {
     val flight = LocalFlight.current
-    val open = { a: Alarm -> flight.takeOff(a.id, EDITOR, a.playlistCover); events.open(a) }
+    val open = { a: Alarm -> openFrom(flight, a, events) }
     Row(
         Modifier.fillMaxWidth().background(Night.CARD, RoundedCornerShape(14.dp)).clickable { open(alarm) }.padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        val alpha by animateFloatAsState(if (alarm.enabled) 1f else OFF_ALPHA, tween(FADE_MS), label = "on")
+        val alpha by animateFloatAsState(if (alarm.enabled) 1f else OFF_ALPHA, tween(FADE_MS, easing = Calm.EASE), label = "on")
         val fade = Modifier.alpha(alpha)
         Sleeve(alarm.playlistCover, alarm.enabled, 72.dp, fade, notes.preparing, spot = alarm.id)
         val words = Modifier.alpha(arrival(alarm.id))
@@ -132,6 +132,12 @@ private fun SleeveRow(alarm: Alarm, notes: CardNotes, events: ListEvents) {
         }
         Switch(alarm.enabled, { events.toggle(alarm, it) }, words, colors = SWITCH)
     }
+}
+
+/** Opening an alarm sends its cover to the editor, when it has a playlist to show there. */
+private fun openFrom(flight: Flight, alarm: Alarm, events: ListEvents) {
+    if (alarm.playlistId != null) flight.takeOff(alarm.id, EDITOR, alarm.playlistCover)
+    events.open(alarm)
 }
 
 /** A new alarm's words wait for its cover to land on the card, then arrive. */

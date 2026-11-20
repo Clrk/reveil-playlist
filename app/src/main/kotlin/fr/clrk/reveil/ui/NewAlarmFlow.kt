@@ -20,6 +20,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -60,7 +62,10 @@ fun NewAlarmFlow(initial: Alarm, onSave: (Alarm) -> Unit, onMore: (Alarm) -> Uni
     val events = object : FlowEvents {
         override fun change(alarm: Alarm) { current = alarm }
         override fun go(step: Step) { if (step == Step.PLAYLIST) picking = true else screen = step }
-        override fun more(alarm: Alarm) = onMore(alarm)
+        override fun more(alarm: Alarm) {
+            flight.takeOff(DRAFT, EDITOR, alarm.playlistCover)
+            leave.then { onMore(alarm) }
+        }
         override fun save(alarm: Alarm) {
             flight.takeOff(DRAFT, alarm.id, alarm.playlistCover)
             leave.then { onSave(alarm) }
@@ -88,14 +93,18 @@ fun FlowScreen(alarm: Alarm, step: Step, events: FlowEvents, now: ZonedDateTime 
 private fun FlowContent(alarm: Alarm, step: Step, events: FlowEvents, now: ZonedDateTime) {
     Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(horizontal = 22.dp)) {
         BackButton(step, events)
+        var last by remember { mutableStateOf(step) }
+        val back = step < last
+        SideEffect { last = step }
         Turn(step, { from, to -> to > from }) { shown ->
-            Column(Modifier.fillMaxSize()) {
+            val returning = remember { back }
+            Column(Modifier.fillMaxSize()) { CompositionLocalProvider(LocalReturn provides returning) {
                 when (shown) {
                     Step.TIME -> TimeStep(alarm, events, now)
                     Step.DAYS -> DaysStep(alarm, events, now)
                     else -> SummaryStep(alarm, events)
                 }
-            }
+            } }
         }
     }
 }

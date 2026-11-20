@@ -82,8 +82,11 @@ fun Modifier.reveal(order: Int, opened: Long? = null, waits: Boolean = true): Mo
 @Composable
 private fun settled(order: Int, opened: Long?): Boolean {
     val late = opened != null && SystemClock.uptimeMillis() - opened > order * Calm.BEAT_MS + Calm.ARRIVE_MS
-    return LocalInspectionMode.current || late
+    return LocalInspectionMode.current || LocalReturn.current || late
 }
+
+/** True on a screen one comes back to: it is already known, so it is simply there, without a cascade. */
+val LocalReturn = compositionLocalOf { false }
 
 @Composable
 private fun Arrive(order: Int, progress: Animatable<Float, *>, waits: Boolean) {

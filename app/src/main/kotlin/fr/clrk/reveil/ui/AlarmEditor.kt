@@ -118,7 +118,7 @@ fun AlarmEditor(
     val state = remember(initial) { EditorState(initial, sharedLink, time) }
     val leave = rememberLeave()
     val flight = LocalFlight.current
-    val gentle = remember(actions) { Leaving(actions, leave, flight, initial.takeIf { existing }) }
+    val gentle = remember(actions) { Leaving(actions, leave, flight, initial.takeIf { existing && it.playlistId != null }) }
     Layer(gentle::close) {
         Appear(leave) {
             EditorScaffold(if (existing) "Modifier le réveil" else "Nouveau réveil", state, gentle) {

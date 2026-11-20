@@ -111,7 +111,7 @@ fun Layer(onBack: () -> Unit, content: @Composable () -> Unit) {
 }
 
 private const val FLY_MS = 480
-private const val LOST_MS = 900L
+private const val LOST_MS = 600L
 private val REST = 6.dp
 private val LIFT = 18.dp
 

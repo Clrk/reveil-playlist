@@ -42,7 +42,7 @@ private const val SLIDE_MS = 450
 @Composable
 fun Sleeve(cover: String?, out: Boolean, size: Dp, modifier: Modifier = Modifier, progress: Float? = null, spot: String? = null) {
     val landed = landed(spot)
-    val slide by animateFloatAsState(if (out && landed) 1f else 0f, tween(SLIDE_MS, discWait(landed)), label = "disc")
+    val slide by animateFloatAsState(if (out && landed) 1f else 0f, tween(SLIDE_MS, discWait(landed), Calm.EASE), label = "disc")
     Box(modifier.size(width = size * (1 + DISC_OUT), height = size).alpha(if (landed) 1f else 0f)) {
         val shift = Modifier.offset { IntOffset((size * (0.04f + DISC_OUT * slide)).roundToPx(), 0) }
         Disc(Modifier.size(size * 0.92f).align(Alignment.CenterStart).then(shift))
