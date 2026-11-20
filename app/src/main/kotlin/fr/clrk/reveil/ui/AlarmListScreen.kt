@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -87,7 +86,7 @@ fun AlarmListScreen(ui: ListUi, events: ListEvents) {
 
 @Composable
 private fun Header(ui: ListUi) {
-    Column(Modifier.statusBarsPadding().padding(top = 18.dp, bottom = 4.dp)) {
+    Column(Modifier.padding(top = 14.dp, bottom = 4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Réveils", Modifier.weight(1f), fontSize = 26.sp, fontWeight = FontWeight.Light)
             Text("${ui.next.title} · ${ui.next.detail}", color = Night.CAPTION, fontSize = 13.sp, maxLines = 1)
@@ -163,9 +162,9 @@ private data class CardNotes(val offline: String?, val skipped: String?)
 
 @Composable
 private fun Skipped(text: String, undo: () -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Column(Modifier.padding(top = 4.dp)) {
         Text(text, fontSize = 12.sp, color = Night.CAPTION)
-        TextButton(onClick = undo) { Text("Annuler", color = Night.EMBER) }
+        Text("Annuler", Modifier.clickable(onClick = undo).padding(vertical = 6.dp), color = Night.EMBER, fontSize = 13.sp)
     }
 }
 
