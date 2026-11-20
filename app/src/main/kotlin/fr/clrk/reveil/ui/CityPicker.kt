@@ -54,7 +54,7 @@ fun CityPicker(source: CitySource, onClose: () -> Unit) {
         onClose()
     }
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        CityScreen(CityUi(query, found, source.current), { query = it }, { chosen = it }, onClose)
+        Appear { CityScreen(CityUi(query, found, source.current), { query = it }, { chosen = it }, onClose) }
     }
 }
 

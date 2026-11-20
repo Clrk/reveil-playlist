@@ -8,6 +8,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.animation.Crossfade
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -22,6 +23,7 @@ import fr.clrk.reveil.core.PlaylistId
 import fr.clrk.reveil.core.WakeInfo
 import fr.clrk.reveil.music.TrackCache
 import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import fr.clrk.reveil.music.PrefetchScheduler
@@ -41,11 +43,14 @@ class MainActivity : ComponentActivity() {
     private var sharedLink by mutableStateOf("")
     private var announcement by mutableStateOf<String?>(null)
     private var download by mutableStateOf<WakeInfo.Download?>(null)
+    private var fetching by mutableStateOf<String?>(null)
+    private var purge: String? = null
     private var undo by mutableStateOf<(() -> Unit)?>(null)
     private var resumed by mutableIntStateOf(0)
     private val prefs by lazy { getSharedPreferences("ui", MODE_PRIVATE) }
     private var onboarded by mutableStateOf(true)
     private val permissions by lazy { Permissions(this) }
+    private val music by lazy { MusicNotes(this) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,7 +59,11 @@ class MainActivity : ComponentActivity() {
         readShare(intent)
         refresh()
         lifecycleScope.launch {
-            PrefetchScheduler.nowState(this@MainActivity).collect { download = it; refresh() }
+            PrefetchScheduler.nowState(this@MainActivity).collect {
+                download = it
+                if (it == null) fetching = null
+                refresh()
+            }
         }
         setContent { MaterialTheme(colorScheme = reveilColors()) { Screen() } }
     }
@@ -84,17 +93,26 @@ class MainActivity : ComponentActivity() {
     }
 
     private val actions = object : EditorActions {
-        override fun save(alarm: Alarm) { app.alarms.update(alarm); editing = null; changed(); announce(alarm) }
+        override fun save(alarm: Alarm) {
+            app.alarms.update(alarm)
+            editing = null
+            changed()
+            announce(alarm)
+            alarm.playlistId?.takeIf { music.cached(it) == 0 }?.let(::prefetch)
+        }
         override fun delete(alarm: Alarm) { editing = null; deleteWithUndo(alarm) }
         override fun test(alarm: Alarm) { app.alarms.update(alarm); RingService.start(this@MainActivity, alarm.id) }
-        override fun prefetch(playlist: String) = PrefetchScheduler.now(this@MainActivity, playlist).let { }
+        override fun prefetch(playlist: String) {
+            fetching = playlist
+            PrefetchScheduler.now(this@MainActivity, playlist)
+        }
         override fun skip(alarm: Alarm) { app.alarms.skipNext(alarm.id); editing = null; changed() }
         override fun close() { editing = null; sharedLink = "" }
     }
 
     private val listEvents = object : ListEvents {
         override fun add() { creating = Alarm.at(LocalTime.of(DEFAULT_HOUR, 0)) }
-        override fun weather() { choosingCity = true }
+        override fun weather() = chooseCity()
         override fun open(alarm: Alarm) { editing = alarm }
         override fun unskip(alarm: Alarm) { app.alarms.unskip(alarm.id); changed() }
         override fun delete(alarm: Alarm) = deleteWithUndo(alarm)
@@ -112,16 +130,26 @@ class MainActivity : ComponentActivity() {
         resumed.let { }
         if (choosingCity) CityPicker(cities) { choosingCity = false; refresh() }
         val city = weather.places.place()?.name
-        if (!onboarded) return OnboardingScreen(permissions.steps(), city, { choosingCity = true }) { finishOnboarding() }
+        Crossfade(onboarded, label = "accueil") { done ->
+            if (done) List(city, next, skipped) else OnboardingScreen(permissions.steps(), city, ::chooseCity, ::finishOnboarding)
+        }
+        Editors()
+    }
+
+    @Composable
+    private fun List(city: String?, next: WakeInfo.NextCard, skipped: Map<String, String>) {
         val line = WeatherLine(city, weather.tomorrow())
-        val ui = ListUi(alarms, next, permissions.warnings(), offline(), announcement, skipped, undo, line)
+        val progress = music.preparing(alarms, fetching, download)
+        val offline = music.offline(alarms, fetching, download)
+        val ui = ListUi(alarms, next, permissions.warnings(), offline, announcement, skipped, undo, line, progress)
         AlarmListScreen(ui, listEvents)
         LaunchedEffect(announcement) {
             delay(ANNOUNCE_MS)
             announcement = null
             undo = null
+            purge?.let { playlist -> lifecycleScope.launch(Dispatchers.IO) { music.free(playlist) } }
+            purge = null
         }
-        Editors()
     }
 
     /** The new alarm steps, or the full editor of an alarm. */
@@ -132,7 +160,7 @@ class MainActivity : ComponentActivity() {
             NewAlarmFlow(draft, onSave = { creating = null; actions.save(it) }, onMore = more, onClose = { creating = null })
         }
         editing?.let { edited ->
-            AlarmEditor(edited, sharedLink, actions, existing = alarms.any { it.id == edited.id }, music = ::musicStatus)
+            AlarmEditor(edited, sharedLink, actions, existing = alarms.any { it.id == edited.id }, music = { music.status(it, download) })
         }
     }
 
@@ -142,28 +170,21 @@ class MainActivity : ComponentActivity() {
         override fun choose(place: Place) = weather.choose(place)
     }
 
+    private fun chooseCity() { choosingCity = true }
+
     private fun finishOnboarding() {
         prefs.edit { putBoolean(ONBOARDED, true) }
         onboarded = true
     }
 
     private fun deleteWithUndo(alarm: Alarm) {
-        app.alarms.delete(alarm.id)
+        purge = app.alarms.delete(alarm.id)
         changed()
         announcement = "Réveil supprimé"
-        undo = { app.alarms.update(alarm); changed(); announcement = null; undo = null }
+        undo = { app.alarms.update(alarm); purge = null; changed(); announcement = null; undo = null }
     }
 
     private fun announce(alarm: Alarm) { announcement = WakeInfo.announce(alarm, ZonedDateTime.now()) }
-
-    /** Progress of a hand-started download, otherwise how many tracks are ready offline. */
-    private fun musicStatus(playlist: String): String =
-        download?.let(WakeInfo::download) ?: WakeInfo.offline(TrackCache(this, PlaylistId(playlist)).tracks().size)
-
-    private fun offline(): Map<String, String> = alarms.mapNotNull { alarm ->
-        val cached = alarm.playlistId?.let { TrackCache(this, PlaylistId(it)).tracks().size } ?: 0
-        WakeInfo.offline(alarm, cached)?.let { alarm.id to it }
-    }.toMap()
 
     private fun askNotifications() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
@@ -177,3 +198,4 @@ class MainActivity : ComponentActivity() {
         const val ONBOARDED = "onboarded"
     }
 }
+

@@ -103,3 +103,14 @@ Fonctionnalité: Gestion des alarmes
     Soit l'alarme "Boulot" à "07:00" répétée "lun" avec la playlist "PL1" nommée "Chill matin" et la pochette "https://img/chill.jpg"
     Quand l'application redémarre
     Alors la pochette de l'alarme "Boulot" est "https://img/chill.jpg"
+
+  Scénario: Supprimer la dernière alarme d'une playlist libère ses chansons
+    Soit l'alarme "Boulot" à "07:00" répétée "lun" avec la playlist "PL1" nommée "Chill matin"
+    Quand je supprime l'alarme "Boulot"
+    Alors les chansons de la playlist "PL1" sont effacées du téléphone
+
+  Scénario: Une playlist encore utilisée par une autre alarme garde ses chansons
+    Soit l'alarme "Boulot" à "07:00" répétée "lun" avec la playlist "PL1" nommée "Chill matin"
+    Et l'alarme "Week-end" à "09:30" répétée "sam" avec la playlist "PL1" nommée "Chill matin"
+    Quand je supprime l'alarme "Boulot"
+    Alors aucune chanson n'est effacée du téléphone

@@ -153,6 +153,12 @@ class ScreensTest {
     }
 
     @Test
+    fun listePreparation() = shot {
+        val ui = ListUi(listOf(boulot, weekend), next, offline = mapOf("1" to "Préparation… 40 %"), preparing = mapOf("1" to 0.4f))
+        AlarmListScreen(ui, noListEvents)
+    }
+
+    @Test
     fun listeVide() = shot {
         val none = WakeInfo.NextCard("Aucun réveil prévu", "Touchez + pour en créer un")
         AlarmListScreen(ListUi(emptyList(), none), noListEvents)

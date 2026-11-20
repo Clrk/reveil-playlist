@@ -19,6 +19,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.Dp
@@ -30,14 +32,18 @@ import coil3.compose.AsyncImage
 private const val DISC_OUT = 0.5f
 private const val SLIDE_MS = 450
 
-/** A record sleeve with its playlist [cover]; the disc slides [out] of it when the alarm is on. */
+/**
+ * A record sleeve with its playlist [cover]; the disc slides [out] of it when the alarm is on.
+ * While the music is being prepared, the cover fills up from the bottom to [progress], under an ember line.
+ */
 @Composable
-fun Sleeve(cover: String?, out: Boolean, size: Dp, modifier: Modifier = Modifier) {
+fun Sleeve(cover: String?, out: Boolean, size: Dp, modifier: Modifier = Modifier, progress: Float? = null) {
     val slide by animateFloatAsState(if (out) 1f else 0f, tween(SLIDE_MS), label = "disc")
     Box(modifier.size(width = size * (1 + DISC_OUT), height = size)) {
         val shift = Modifier.offset { IntOffset((size * (0.04f + DISC_OUT * slide)).roundToPx(), 0) }
         Disc(Modifier.size(size * 0.92f).align(Alignment.CenterStart).then(shift))
         Cover(cover, Modifier.size(size).shadow(6.dp, RoundedCornerShape(4.dp)))
+        progress?.let { Filling(it, Modifier.size(size).clip(RoundedCornerShape(4.dp))) }
     }
 }
 
@@ -63,6 +69,17 @@ private fun Disc(modifier: Modifier) {
         drawCircle(Color(0x47E6D6C4), r, style = Stroke(1.5f))
         drawCircle(Night.EMBER, r * 0.3f)
         drawCircle(Color(0xFF151515), r * 0.03f)
+    }
+}
+
+/** The part still to prepare is veiled; the ember line rises as songs arrive. */
+@Composable
+private fun Filling(progress: Float, modifier: Modifier) {
+    val shown by animateFloatAsState(progress, tween(SLIDE_MS), label = "progress")
+    Canvas(modifier) {
+        val edge = size.height * (1 - shown)
+        drawRect(Night.BG.copy(alpha = 0.62f), size = Size(size.width, edge))
+        drawLine(Night.EMBER, Offset(0f, edge), Offset(size.width, edge), strokeWidth = 2.dp.toPx())
     }
 }
 

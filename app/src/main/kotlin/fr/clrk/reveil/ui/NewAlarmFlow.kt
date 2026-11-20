@@ -72,7 +72,7 @@ fun NewAlarmFlow(initial: Alarm, onSave: (Alarm) -> Unit, onMore: (Alarm) -> Uni
         )
     }
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        FlowScreen(current, screen, events)
+        Appear { FlowScreen(current, screen, events) }
     }
 }
 
@@ -85,10 +85,14 @@ fun FlowScreen(alarm: Alarm, step: Step, events: FlowEvents, now: ZonedDateTime 
 private fun FlowContent(alarm: Alarm, step: Step, events: FlowEvents, now: ZonedDateTime) {
     Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(horizontal = 22.dp)) {
         BackButton(step, events)
-        when (step) {
-            Step.TIME -> TimeStep(alarm, events, now)
-            Step.DAYS -> DaysStep(alarm, events, now)
-            else -> SummaryStep(alarm, events)
+        Turn(step, { from, to -> to > from }) { shown ->
+            Column(Modifier.fillMaxSize()) {
+                when (shown) {
+                    Step.TIME -> TimeStep(alarm, events, now)
+                    Step.DAYS -> DaysStep(alarm, events, now)
+                    else -> SummaryStep(alarm, events)
+                }
+            }
         }
     }
 }

@@ -1,5 +1,15 @@
 package fr.clrk.reveil.ui
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -16,6 +26,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -51,6 +63,32 @@ fun DayLetters(days: Set<DayOfWeek>, modifier: Modifier = Modifier) {
 @Composable
 fun NightPage(content: @Composable () -> Unit) =
     Surface(Modifier.fillMaxSize(), color = Night.BG, contentColor = Night.CREAM, content = content)
+
+/** A screen that opens over another eases in: it fades in while rising slightly. Still in previews and screenshots. */
+@Composable
+fun Appear(content: @Composable () -> Unit) {
+    if (LocalInspectionMode.current) return content()
+    val state = remember { MutableTransitionState(false).apply { targetState = true } }
+    AnimatedVisibility(state, enter = fadeIn(tween(OPEN_MS)) + slideInVertically(tween(OPEN_MS)) { it / RISE }) { content() }
+}
+
+/** Content that changes in place (steps, tabs) crossfades with a short slide in the reading direction. */
+@Composable
+fun <T> Turn(target: T, forward: (from: T, to: T) -> Boolean = { _, _ -> true }, content: @Composable (T) -> Unit) {
+    AnimatedContent(
+        target, label = "turn",
+        transitionSpec = {
+            val sign = if (forward(initialState, targetState)) 1 else -1
+            (fadeIn(tween(OPEN_MS)) + slideInHorizontally(tween(OPEN_MS)) { sign * it / SHIFT }) togetherWith
+                (fadeOut(tween(CLOSE_MS)) + slideOutHorizontally(tween(OPEN_MS)) { -sign * it / SHIFT })
+        },
+    ) { content(it) }
+}
+
+private const val OPEN_MS = 320
+private const val CLOSE_MS = 180
+private const val RISE = 14
+private const val SHIFT = 8
 
 /** The one ember button of a screen. */
 @Composable

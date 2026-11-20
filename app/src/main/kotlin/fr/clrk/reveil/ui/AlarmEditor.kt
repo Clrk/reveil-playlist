@@ -105,9 +105,11 @@ fun AlarmEditor(
     val time = rememberTimePickerState(initial.time.hour, initial.time.minute, is24Hour = true)
     val state = remember(initial) { EditorState(initial, sharedLink, time) }
     Dialog(onDismissRequest = actions::close, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        EditorScaffold(if (existing) "Modifier le réveil" else "Nouveau réveil", state, actions) {
-            EditorForm(state, actions, now, music)
-            if (existing) SavedAlarmActions(initial, actions)
+        Appear {
+            EditorScaffold(if (existing) "Modifier le réveil" else "Nouveau réveil", state, actions) {
+                EditorForm(state, actions, now, music)
+                if (existing) SavedAlarmActions(initial, actions)
+            }
         }
     }
     if (state.picking) {

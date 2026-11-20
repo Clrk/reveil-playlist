@@ -92,7 +92,7 @@ fun PlaylistPicker(onPick: (PlaylistChoice) -> Unit, onClose: () -> Unit) {
         override fun close() = onClose()
     }
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        PlaylistPickerScreen(ui, events)
+        Appear { PlaylistPickerScreen(ui, events) }
     }
 }
 
@@ -126,7 +126,9 @@ fun PlaylistPickerScreen(ui: PickerUi, events: PickerEvents) {
                 PickerTab.entries.forEach { tab -> Tab(ui.tab == tab, { events.tab(tab) }, text = { Text(tab.label) }) }
             }
             Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (ui.tab == PickerTab.MINE) Library(ui.library, events) else SearchTab(ui, events)
+                Turn(ui.tab, { from, to -> to > from }) { tab ->
+                    Column { if (tab == PickerTab.MINE) Library(ui.library, events) else SearchTab(ui, events) }
+                }
             }
         }
     }

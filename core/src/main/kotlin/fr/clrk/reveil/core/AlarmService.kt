@@ -38,9 +38,12 @@ class AlarmService(
         find(id)?.let { update(it.copy(enabled = enabled)) }
     }
 
-    fun delete(id: String) {
+    /** Deletes the alarm; returns its playlist when no other alarm uses it, so its songs can be removed from the phone. */
+    fun delete(id: String): String? {
+        val playlist = repository.all().associate { it.id to it.playlistId }[id]
         repository.delete(id)
         planner.cancel(id)
+        return playlist?.takeIf { p -> repository.all().none { it.playlistId == p } }
     }
 
     fun next(): Pair<Alarm, ZonedDateTime>? = repository.all()

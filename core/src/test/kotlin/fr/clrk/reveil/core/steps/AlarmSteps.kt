@@ -69,7 +69,7 @@ private fun StepRegistry<AlarmWorld>.lifecycleSteps() {
     step("je change l'heure de $ALARM à \"([^\"]+)\"") { (label, time) ->
         service.update(alarm(label).copy(time = Formats.time(time)))
     }
-    step("je supprime $ALARM") { (label) -> service.delete(alarm(label).id) }
+    step("je supprime $ALARM") { (label) -> freed = service.delete(alarm(label).id) }
     step("$ALARM sonne le \"([^\"]+)\"") { (label, moment) ->
         now = Formats.moment(moment)
         service.onRing(alarm(label).id)
@@ -146,6 +146,8 @@ private fun StepRegistry<AlarmWorld>.snoozeAssertions() {
         assertEquals(seconds.toInt(), alarm(label).rampSeconds)
     }
     step("la pochette de $ALARM est \"([^\"]+)\"") { (label, cover) -> assertEquals(cover, alarm(label).playlistCover) }
+    step("les chansons de la playlist \"([^\"]+)\" sont effacées du téléphone") { (playlist) -> assertEquals(playlist, freed) }
+    step("aucune chanson n'est effacée du téléphone") { assertNull(freed) }
     step("$ALARM n'a pas de snooze en attente") { (label) ->
         assertNull(phone.planned[TriggerKey(id(label), TriggerKey.Kind.SNOOZE)])
     }

@@ -1,5 +1,7 @@
 package fr.clrk.reveil.ui
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -24,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -46,6 +49,7 @@ data class ListUi(
     val skipped: Map<String, String> = emptyMap(),
     val undo: (() -> Unit)? = null,
     val weather: WeatherLine = WeatherLine(),
+    val preparing: Map<String, Float> = emptyMap(),
 )
 
 /** Tomorrow morning's weather for the list, once a [city] is chosen. */
@@ -77,7 +81,10 @@ fun AlarmListScreen(ui: ListUi, events: ListEvents) {
         ) {
             item { Header(ui) }
             items(ui.alarms, key = { it.id }) {
-                SwipeToDelete({ events.delete(it) }) { SleeveRow(it, CardNotes(ui.offline[it.id], ui.skipped[it.id]), events) }
+                Box(Modifier.animateItem()) {
+                    val notes = CardNotes(ui.offline[it.id], ui.skipped[it.id], ui.preparing[it.id])
+                    SwipeToDelete({ events.delete(it) }) { SleeveRow(it, notes, events) }
+                }
             }
             item { WeatherFooter(ui.weather, events::weather) }
         }
@@ -101,8 +108,9 @@ private fun SleeveRow(alarm: Alarm, notes: CardNotes, events: ListEvents) {
         Modifier.fillMaxWidth().background(Night.CARD, RoundedCornerShape(14.dp)).clickable { events.open(alarm) }.padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        val fade = Modifier.alpha(if (alarm.enabled) 1f else OFF_ALPHA)
-        Sleeve(alarm.playlistCover, alarm.enabled, 72.dp, fade)
+        val alpha by animateFloatAsState(if (alarm.enabled) 1f else OFF_ALPHA, tween(FADE_MS), label = "on")
+        val fade = Modifier.alpha(alpha)
+        Sleeve(alarm.playlistCover, alarm.enabled, 72.dp, fade, notes.preparing)
         Column(fade.weight(1f).padding(start = 12.dp)) {
             Text(clock(alarm.time, alarm.enabled), fontSize = 40.sp, fontWeight = FontWeight.Thin, lineHeight = 44.sp)
             DayLetters(alarm.days, Modifier.padding(top = 2.dp))
@@ -132,7 +140,7 @@ private fun EmptyCrate(ui: ListUi, events: ListEvents, modifier: Modifier) {
             ui.warnings.forEach { (text, fix) -> Warning(text, fix) }
             Text("La platine attend.", fontSize = 30.sp, fontWeight = FontWeight.ExtraLight)
             Text(
-                "Aucun réveil prévu. Choisissez une heure et une playlist, le reste se fait la veille.",
+                "Aucun réveil prévu. Les chansons sont gardées sur le téléphone, le réveil sonne même hors ligne.",
                 Modifier.padding(top = 10.dp), color = Night.CAPTION, fontSize = 15.sp, textAlign = TextAlign.Center,
             )
             WeatherFooter(ui.weather, events::weather, Modifier.padding(top = 14.dp))
@@ -158,7 +166,7 @@ private fun Warning(text: String, fix: () -> Unit) {
 }
 
 /** Secondary lines of an alarm: offline readiness and a skipped occurrence. */
-private data class CardNotes(val offline: String?, val skipped: String?)
+private data class CardNotes(val offline: String?, val skipped: String?, val preparing: Float?)
 
 @Composable
 private fun Skipped(text: String, undo: () -> Unit) {
@@ -198,3 +206,4 @@ internal fun MusicStatus(text: String, modifier: Modifier = Modifier) {
 }
 
 private const val OFF_ALPHA = 0.45f
+private const val FADE_MS = 450
