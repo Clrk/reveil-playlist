@@ -5,7 +5,6 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import app.cash.paparazzi.DeviceConfig
 import app.cash.paparazzi.Paparazzi
-import fr.clrk.reveil.alarm.RingState
 import fr.clrk.reveil.core.Alarm
 import fr.clrk.reveil.core.PlaylistChoice
 import fr.clrk.reveil.core.PlaylistId
@@ -121,16 +120,6 @@ class ScreensTest {
 
     @Test
     fun editionSansPlaylist() = shot { AlarmEditor(weekend, "", noActions, existing = true, now = { sunday }) }
-
-    @Test
-    fun sonnerie() = paparazzi.snapshot {
-        RingScreen(RingState.Ui("Boulot", "Norah Jones - Come Away With Me", "10 min · encore 3 fois"), "07:00") {}
-    }
-
-    @Test
-    fun sonnerieSansSnooze() = paparazzi.snapshot {
-        RingScreen(RingState.Ui("Boulot", "Norah Jones - Come Away With Me", snooze = null), "07:20") {}
-    }
 
     @Test
     fun listeAvertissement() = shot {

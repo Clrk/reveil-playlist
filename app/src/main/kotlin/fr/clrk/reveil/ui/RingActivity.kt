@@ -3,42 +3,43 @@ package fr.clrk.reveil.ui
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil3.compose.AsyncImage
+import coil3.compose.rememberAsyncImagePainter
 import fr.clrk.reveil.alarm.RingService
 import fr.clrk.reveil.alarm.RingState
+import fr.clrk.reveil.core.DayWeather
+import fr.clrk.reveil.core.MorningLight
+import fr.clrk.reveil.core.Tonearm
+import fr.clrk.reveil.core.Turntable
+import fr.clrk.reveil.ui.ring.MorningScene
+import fr.clrk.reveil.ui.ring.RingClock
+import fr.clrk.reveil.ui.ring.SceneState
+import fr.clrk.reveil.ui.ring.SnoozeButton
+import fr.clrk.reveil.ui.ring.rememberElapsed
+import java.time.Duration
+import java.time.LocalDate
 import java.time.LocalTime
-import java.time.format.DateTimeFormatter
 
 /** Full-screen ringing screen, shown above the lock screen. Always dark: it is read with sleepy eyes. */
 class RingActivity : ComponentActivity() {
@@ -58,65 +59,45 @@ class RingActivity : ComponentActivity() {
 }
 
 internal val RingColors = darkColorScheme(
-    background = Color(0xFF0F0D16),
-    surface = Color(0xFF0F0D16),
-    onSurface = Color(0xFFE6E0EE),
-    primaryContainer = Color(0xFFCBBCFF),
-    onPrimaryContainer = Color(0xFF21124D),
+    background = Color(0xFF06090B),
+    surface = Color(0xFF06090B),
+    onSurface = Color(0xFFE6D6C4),
+    primary = Color(0xFFE3A36B),
+    onPrimary = Color(0xFF1A1210),
 )
 
+/**
+ * The room wakes up with the music: the light rises over the volume ramp, the record spins with the track cover
+ * as label once the tonearm has landed on it, and sliding to stop lifts the tonearm.
+ * [elapsed] fixes the light for screenshots; null follows the clock.
+ */
 @Composable
 internal fun RingScreen(
     ui: RingState.Ui,
-    now: String = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm")),
+    now: LocalTime = LocalTime.now(),
+    today: LocalDate = LocalDate.now(),
+    elapsed: Duration? = null,
     send: (String) -> Unit,
 ) {
+    val time = elapsed ?: rememberElapsed(ui.startedAt)
+    val light = MorningLight(ui.rampSeconds).at(time)
+    var slide by remember { mutableFloatStateOf(0f) }
+    val cover = ui.cover?.let { rememberAsyncImagePainter(it) }
     MaterialTheme(colorScheme = RingColors) {
         Surface(Modifier.fillMaxSize()) {
-            Column(Modifier.padding(horizontal = 24.dp, vertical = 32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(now, fontSize = 88.sp, fontWeight = FontWeight.Light, modifier = Modifier.padding(top = 24.dp))
-                Text(ui.label.ifBlank { "Réveil" }, style = MaterialTheme.typography.titleMedium)
-                Spacer(Modifier.height(32.dp))
-                NowPlaying(ui)
-                Spacer(Modifier.weight(1f))
-                ui.snooze?.let { SnoozeButton(it) { send(RingService.ACTION_SNOOZE) } }
-                Spacer(Modifier.height(16.dp))
-                SlideToStop { send(RingService.ACTION_DISMISS) }
+            Box(Modifier.fillMaxSize()) {
+                val arm = if (slide > 0f) Tonearm.pose(slide) else Tonearm.start(time.toMillis())
+                val sky = DayWeather.sceneOf(ui.weather)
+                val scene = SceneState(light, sky, cover, Turntable.angle(time.toMillis()), arm)
+                MorningScene(scene, Modifier.fillMaxSize())
+                val top = Modifier.align(Alignment.TopCenter).systemBarsPadding().padding(top = 48.dp).alpha(light.text)
+                RingClock(now, today, ui.weather, top)
+                Column(Modifier.align(Alignment.BottomCenter).systemBarsPadding().padding(horizontal = 24.dp, vertical = 24.dp)) {
+                    ui.snooze?.let { SnoozeButton(it) { send(RingService.ACTION_SNOOZE) } }
+                    Spacer(Modifier.height(16.dp))
+                    SlideToStop(onProgress = { slide = it }) { send(RingService.ACTION_DISMISS) }
+                }
             }
-        }
-    }
-}
-
-@Composable
-private fun NowPlaying(ui: RingState.Ui) {
-    Box(
-        Modifier.size(200.dp).clip(RoundedCornerShape(20.dp)).background(MaterialTheme.colorScheme.surfaceVariant),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text("♪", fontSize = 56.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        ui.cover?.let { AsyncImage(it, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
-    }
-    Spacer(Modifier.height(16.dp))
-    Text(
-        ui.nowPlaying, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center,
-        maxLines = 2, overflow = TextOverflow.Ellipsis,
-    )
-}
-
-@Composable
-private fun SnoozeButton(detail: String, onClick: () -> Unit) {
-    Button(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth().height(88.dp),
-        shape = RoundedCornerShape(28.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-        ),
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-            Text("Snooze", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-            Text(detail, style = MaterialTheme.typography.bodyMedium)
         }
     }
 }

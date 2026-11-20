@@ -26,13 +26,16 @@ import fr.clrk.reveil.core.VolumeRamp
 import fr.clrk.reveil.core.WakeSession
 import fr.clrk.reveil.core.WakeSource
 import fr.clrk.reveil.ui.RingActivity
+import fr.clrk.reveil.weather.WeatherRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /** Foreground service that rings: shuffled music with automatic fallback to the system alarm sound. */
 class RingService : Service() {
@@ -69,7 +72,9 @@ class RingService : Service() {
     private fun ring(id: String) {
         alarmId = id
         val alarm = app.alarms.find(id)
-        RingState.show(alarm)
+        val weather = WeatherRepository(this)
+        RingState.show(alarm, weather.day())
+        scope.launch { RingState.weather(withContext(Dispatchers.IO) { weather.refresh(); weather.day() }) }
         val canSnooze = alarm?.snoozesLeft != 0
         val type = ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
         ServiceCompat.startForeground(this, NOTIFICATION, notification(alarm?.label, canSnooze), type)

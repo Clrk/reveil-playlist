@@ -17,8 +17,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -29,6 +31,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -36,9 +39,15 @@ private val TRACK_HEIGHT = 64.dp
 private val THUMB = 56.dp
 private const val STOP_AT = 0.85f
 
-/** Stopping takes a deliberate swipe, so a half-asleep tap can only snooze. TalkBack users get a plain action. */
+/** Lets the tonearm settle on its rest before the screen closes. */
+private const val SETTLE_MS = 450L
+
+/**
+ * Stopping takes a deliberate swipe, so a half-asleep tap can only snooze. TalkBack users get a plain action.
+ * [onProgress] reports the thumb position (0–1), e.g. to lift the tonearm along with it.
+ */
 @Composable
-fun SlideToStop(onStop: () -> Unit) {
+fun SlideToStop(onProgress: (Float) -> Unit = {}, onStop: () -> Unit) {
     val offset = remember { Animatable(0f) }
     BoxWithConstraints(
         Modifier.fillMaxWidth().height(TRACK_HEIGHT)
@@ -52,7 +61,8 @@ fun SlideToStop(onStop: () -> Unit) {
         contentAlignment = Alignment.CenterStart,
     ) {
         val max = with(LocalDensity.current) { (maxWidth - THUMB - 8.dp).toPx() }
-        Text("Glisser pour arrêter  →", Modifier.align(Alignment.Center), style = MaterialTheme.typography.titleMedium)
+        Text("arrêter  →", Modifier.align(Alignment.Center), style = MaterialTheme.typography.titleMedium)
+        LaunchedEffect(offset, max) { snapshotFlow { offset.value / max }.collect(onProgress) }
         Thumb(offset, max, onStop)
     }
 }
@@ -62,12 +72,19 @@ private fun Thumb(offset: Animatable<Float, *>, max: Float, onStop: () -> Unit) 
     val scope = rememberCoroutineScope()
     Box(
         Modifier.padding(4.dp).offset { IntOffset(offset.value.roundToInt(), 0) }.size(THUMB)
-            .background(MaterialTheme.colorScheme.onSurface, CircleShape)
+            .background(MaterialTheme.colorScheme.primary, CircleShape)
             .draggable(
                 orientation = Orientation.Horizontal,
                 state = rememberDraggableState { delta -> scope.launch { offset.snapTo((offset.value + delta).coerceIn(0f, max)) } },
-                onDragStopped = { if (offset.value >= max * STOP_AT) onStop() else offset.animateTo(0f) },
+                onDragStopped = { if (offset.value >= max * STOP_AT) settle(offset, max, onStop) else offset.animateTo(0f) },
             ),
         contentAlignment = Alignment.Center,
-    ) { Text("■", color = MaterialTheme.colorScheme.surface) }
+    ) { }
+}
+
+/** Finishes the slide on its own, waits for the tonearm to land, then stops. */
+private suspend fun settle(offset: Animatable<Float, *>, max: Float, onStop: () -> Unit) {
+    offset.animateTo(max)
+    delay(SETTLE_MS)
+    onStop()
 }

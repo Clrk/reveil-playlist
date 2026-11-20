@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.core.content.edit
 import androidx.core.net.toUri
 import fr.clrk.reveil.core.Alarm
+import fr.clrk.reveil.core.DayWeather
 import fr.clrk.reveil.core.FallbackPlaylistSource
 import fr.clrk.reveil.core.PlaylistId
 import fr.clrk.reveil.core.PlaylistSource
@@ -53,13 +54,29 @@ class RingMusic(private val context: Context, playlistId: String?) {
 
 /** What the lock-screen activity displays while ringing. */
 object RingState {
-    /** [snooze] describes the snooze button, null once no snooze is left. */
-    data class Ui(val label: String, val nowPlaying: String, val snooze: String? = null, val cover: String? = null)
+    /**
+     * [snooze] describes the snooze button, null once no snooze is left.
+     * [startedAt] and [rampSeconds] drive the morning light; [weather] is today's forecast when known.
+     */
+    data class Ui(
+        val label: String,
+        val nowPlaying: String,
+        val snooze: String? = null,
+        val cover: String? = null,
+        val startedAt: Long = System.currentTimeMillis(),
+        val rampSeconds: Int = Alarm.DEFAULT_RAMP_SECONDS,
+        val weather: DayWeather? = null,
+    )
 
     val ui = kotlinx.coroutines.flow.MutableStateFlow<Ui?>(null)
 
-    fun show(alarm: Alarm?) {
-        ui.value = Ui(alarm?.label.orEmpty(), "", alarm?.let(::snoozeText) ?: Alarm.DEFAULT_SNOOZE_MINUTES.let { "$it min" })
+    fun show(alarm: Alarm?, weather: DayWeather?) {
+        val snooze = alarm?.let(::snoozeText) ?: Alarm.DEFAULT_SNOOZE_MINUTES.let { "$it min" }
+        ui.value = Ui(alarm?.label.orEmpty(), "", snooze, rampSeconds = alarm?.rampSeconds ?: Alarm.DEFAULT_RAMP_SECONDS, weather = weather)
+    }
+
+    fun weather(day: DayWeather?) {
+        if (day != null) ui.value = ui.value?.copy(weather = day)
     }
 
     fun playing(source: WakeSource) {

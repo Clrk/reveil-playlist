@@ -16,6 +16,7 @@ import fr.clrk.reveil.core.PlaylistId
 import fr.clrk.reveil.core.PrefetchPolicy
 import fr.clrk.reveil.core.Track
 import fr.clrk.reveil.core.WakeInfo
+import fr.clrk.reveil.weather.WeatherRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.Dispatchers
@@ -28,6 +29,7 @@ import kotlin.random.Random
 /** Downloads a rotating handful of tracks the evening before the next alarm. */
 class PrefetchWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
+        WeatherRepository(applicationContext).refresh()
         val playlist = PlaylistId(inputData.getString(KEY_PLAYLIST) ?: return@withContext Result.failure())
         val source = FallbackPlaylistSource(YtMusicAccount(applicationContext), NewPipePlaylistSource())
         val tracks = runCatching { source.tracks(playlist) }.getOrNull() ?: return@withContext giveUp()
