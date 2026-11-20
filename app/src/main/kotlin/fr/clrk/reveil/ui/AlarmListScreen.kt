@@ -52,7 +52,11 @@ data class ListUi(
     val undo: (() -> Unit)? = null,
     val weather: WeatherLine = WeatherLine(),
     val preparing: Map<String, Float> = emptyMap(),
+    val update: UpdateNote? = null,
 )
+
+/** A newer version found on GitHub; [progress] while it downloads. */
+data class UpdateNote(val version: String, val progress: Float? = null)
 
 /** Tomorrow morning's weather for the list, once a [city] is chosen. */
 data class WeatherLine(val city: String? = null, val morning: HalfDay? = null)
@@ -64,6 +68,7 @@ interface ListEvents {
     fun unskip(alarm: Alarm)
     fun delete(alarm: Alarm)
     fun weather()
+    fun update() = Unit
 }
 
 /** The crate of records: each alarm is the sleeve of its playlist, its disc out while the alarm is on. */
@@ -88,7 +93,7 @@ private fun Crate(ui: ListUi, events: ListEvents, modifier: Modifier) {
         verticalArrangement = Arrangement.spacedBy(14.dp),
         modifier = modifier,
     ) {
-        item { Header(ui, Modifier.reveal(0)) }
+        item { Header(ui, events, Modifier.reveal(0)) }
         itemsIndexed(ui.alarms, key = { _, alarm -> alarm.id }) { i, alarm ->
             Box(Modifier.animateItem().reveal(row(i), opened)) {
                 val notes = CardNotes(ui.offline[alarm.id], ui.skipped[alarm.id], ui.preparing[alarm.id])
@@ -100,13 +105,24 @@ private fun Crate(ui: ListUi, events: ListEvents, modifier: Modifier) {
 }
 
 @Composable
-private fun Header(ui: ListUi, modifier: Modifier) {
+private fun Header(ui: ListUi, events: ListEvents, modifier: Modifier) {
     Column(modifier.padding(top = 14.dp, bottom = 4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Réveils", Modifier.weight(1f), fontSize = 26.sp, fontWeight = FontWeight.Light)
             Text("${ui.next.title} · ${ui.next.detail}", color = Night.CAPTION, fontSize = 13.sp, maxLines = 1)
         }
         ui.warnings.forEach { (text, fix) -> Warning(text, fix) }
+        ui.update?.let { NewVersion(it, events::update) }
+    }
+}
+
+/** One line, like the warnings: a newer version, and one tap to install it. */
+@Composable
+private fun NewVersion(note: UpdateNote, install: () -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+        val text = note.progress?.let { "Téléchargement de la version ${note.version}… ${(it * PERCENT).toInt()} %" }
+        Text(text ?: "Nouvelle version ${note.version} disponible", Modifier.weight(1f), color = Night.CAPTION, fontSize = 13.sp)
+        if (note.progress == null) TextButton(onClick = install) { Text("Installer", color = Night.EMBER) }
     }
 }
 
@@ -165,6 +181,7 @@ private fun EmptyCrate(ui: ListUi, events: ListEvents, modifier: Modifier) {
         Spacer(Modifier.weight(1f))
         Column(Modifier.padding(horizontal = 30.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             ui.warnings.forEach { (text, fix) -> Warning(text, fix) }
+            ui.update?.let { NewVersion(it, events::update) }
             Text("La platine attend.", Modifier.reveal(1), fontSize = 30.sp, fontWeight = FontWeight.ExtraLight)
             Text(
                 "Aucun réveil prévu. Les chansons sont gardées sur le téléphone, le réveil sonne même hors ligne.",
@@ -234,3 +251,4 @@ internal fun MusicStatus(text: String, modifier: Modifier = Modifier) {
 
 private const val OFF_ALPHA = 0.45f
 private const val FADE_MS = 450
+private const val PERCENT = 100

@@ -32,6 +32,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import fr.clrk.reveil.music.PrefetchScheduler
+import fr.clrk.reveil.update.Updater
 import fr.clrk.reveil.weather.WeatherRepository
 import fr.clrk.reveil.core.Place
 import java.time.LocalTime
@@ -56,6 +57,7 @@ class MainActivity : ComponentActivity() {
     private var onboarded by mutableStateOf(true)
     private val permissions by lazy { Permissions(this) }
     private val music by lazy { MusicNotes(this) }
+    private val upgrade by lazy { Upgrade(Updater(this), lifecycleScope) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -63,6 +65,7 @@ class MainActivity : ComponentActivity() {
         onboarded = prefs.getBoolean(ONBOARDED, false)
         readShare(intent)
         refresh()
+        upgrade.check()
         lifecycleScope.launch {
             PrefetchScheduler.nowState(this@MainActivity).collect {
                 download = it
@@ -118,6 +121,7 @@ class MainActivity : ComponentActivity() {
     private val listEvents = object : ListEvents {
         override fun add() { creating = Alarm.at(LocalTime.of(DEFAULT_HOUR, 0)) }
         override fun weather() = chooseCity()
+        override fun update() = upgrade.install()
         override fun open(alarm: Alarm) { editing = alarm }
         override fun unskip(alarm: Alarm) { app.alarms.unskip(alarm.id); changed() }
         override fun delete(alarm: Alarm) = deleteWithUndo(alarm)
@@ -151,7 +155,7 @@ class MainActivity : ComponentActivity() {
         val line = WeatherLine(city, weather.tomorrow())
         val progress = music.preparing(alarms, fetching, download)
         val offline = music.offline(alarms, fetching, download)
-        val ui = ListUi(alarms, next, permissions.warnings(), offline, announcement, skipped, undo, line, progress)
+        val ui = ListUi(alarms, next, permissions.warnings(), offline, announcement, skipped, undo, line, progress, upgrade.note)
         AlarmListScreen(ui, listEvents)
         LaunchedEffect(announcement) {
             delay(ANNOUNCE_MS)

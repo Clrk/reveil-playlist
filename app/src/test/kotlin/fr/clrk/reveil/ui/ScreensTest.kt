@@ -60,6 +60,16 @@ class ScreensTest {
     }
 
     @Test
+    fun listeMiseAJour() = shot {
+        AlarmListScreen(ListUi(listOf(boulot, weekend), next, offline = ready, update = UpdateNote("0.9.8")), noListEvents)
+    }
+
+    @Test
+    fun listeMiseAJourTelechargement() = shot {
+        AlarmListScreen(ListUi(listOf(boulot, weekend), next, offline = ready, update = UpdateNote("0.9.8", 0.42f)), noListEvents)
+    }
+
+    @Test
     fun edition() = shot {
         AlarmEditor(boulot, "", noActions, existing = true, now = { sunday }) { "✓ Prête pour le réveil, même hors ligne" }
     }
