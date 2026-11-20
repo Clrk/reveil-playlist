@@ -6,7 +6,9 @@ import android.app.NotificationManager
 import fr.clrk.reveil.alarm.AndroidAlarmScheduler
 import fr.clrk.reveil.alarm.FileTextStore
 import fr.clrk.reveil.music.NewPipeDownloader
+import fr.clrk.reveil.music.YouTubeHealth
 import fr.clrk.reveil.music.PrefetchScheduler
+import fr.clrk.reveil.update.UpdateWorker
 import fr.clrk.reveil.core.AlarmRepository
 import fr.clrk.reveil.core.AlarmService
 import org.schabi.newpipe.extractor.NewPipe
@@ -21,9 +23,11 @@ class ReveilApp : Application() {
     override fun onCreate() {
         super.onCreate()
         NewPipe.init(NewPipeDownloader.instance)
+        YouTubeHealth.init(this)
         val store = FileTextStore(File(noBackupFilesDir, "alarms.json"))
         alarms = AlarmService(AlarmRepository(store), AndroidAlarmScheduler(this)) { ZonedDateTime.now() }
         createChannel()
+        UpdateWorker.schedule(this)
     }
 
     /** Call after any alarm change so the evening pre-download follows the next alarm. */

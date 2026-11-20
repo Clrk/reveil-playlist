@@ -16,6 +16,7 @@ class AlarmWorld {
     val phone = FakePhoneScheduler()
     val disk = MemoryStore()
     var cachedTracks = 0
+    var freed: String? = null
     var download: WakeInfo.Download = WakeInfo.Download.Waiting
     var service = newService()
 

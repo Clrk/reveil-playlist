@@ -11,9 +11,9 @@ import java.io.IOException
 
 /** Audio files pre-downloaded for one playlist, plus the tracks already heard at wake-up. */
 class TrackCache(context: Context, playlist: PlaylistId) {
-    private val dir = File(context.filesDir, "tracks/${playlist.value}").apply { mkdirs() }
+    private val dir = folder(context, playlist).apply { mkdirs() }
     private val index = File(dir, "index.json")
-    private val prefs = context.getSharedPreferences("played-${playlist.value}", Context.MODE_PRIVATE)
+    private val prefs = prefs(context, playlist)
 
     fun tracks(): List<Track> = titles().filter { file(it.key).exists() }.map { Track(it.key, it.value) }
 
@@ -71,9 +71,20 @@ class TrackCache(context: Context, playlist: PlaylistId) {
         }
     }
 
-    private companion object {
-        const val PLAYED = "played"
-        const val KNOWN = "known"
-        const val CHUNK = 1_000_000L
+    companion object {
+        private const val PLAYED = "played"
+        private const val KNOWN = "known"
+        private const val CHUNK = 1_000_000L
+
+        private fun folder(context: Context, playlist: PlaylistId) = File(context.filesDir, "tracks/${playlist.value}")
+
+        private fun prefs(context: Context, playlist: PlaylistId) =
+            context.getSharedPreferences("played-${playlist.value}", Context.MODE_PRIVATE)
+
+        /** Removes every song of the playlist from the phone, once no alarm uses it any more. */
+        fun clear(context: Context, playlist: PlaylistId) {
+            folder(context, playlist).deleteRecursively()
+            prefs(context, playlist).edit { clear() }
+        }
     }
 }

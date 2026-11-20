@@ -15,6 +15,7 @@ data class Alarm(
     val snoozeMinutes: Int = DEFAULT_SNOOZE_MINUTES,
     val playlistId: String? = null,
     val playlistTitle: String? = null,
+    val playlistCover: String? = null,
     val snoozedUntil: Instant? = null,
     val maxSnoozes: Int? = DEFAULT_MAX_SNOOZES,
     val snoozeCount: Int = 0,

@@ -1,6 +1,7 @@
 package fr.clrk.reveil.core.steps
 
 import fr.clrk.reveil.core.TriggerKey
+import fr.clrk.reveil.core.unused
 import fr.clrk.reveil.core.bdd.FeatureRunner
 import fr.clrk.reveil.core.bdd.StepRegistry
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -30,6 +31,10 @@ private fun StepRegistry<AlarmWorld>.creationSteps() {
         val (label, time, days, playlist) = values
         val created = service.create(Formats.time(time), Formats.days(days), label, playlistId = playlist)
         remember(service.update(created.copy(playlistTitle = values[4])))
+    }
+    step("$REPEATED avec la playlist \"([^\"]+)\" nommée \"([^\"]+)\" et la pochette \"([^\"]+)\"") { values ->
+        val created = service.create(Formats.time(values[1]), Formats.days(values[2]), values[0], playlistId = values[3])
+        remember(service.update(created.copy(playlistTitle = values[4], playlistCover = values[5])))
     }
     step("$REPEATED avec un snooze de \"(\\d+)\" minutes") { (label, time, days, minutes) ->
         remember(service.create(Formats.time(time), Formats.days(days), label, snoozeMinutes = minutes.toInt()))
@@ -65,7 +70,7 @@ private fun StepRegistry<AlarmWorld>.lifecycleSteps() {
     step("je change l'heure de $ALARM à \"([^\"]+)\"") { (label, time) ->
         service.update(alarm(label).copy(time = Formats.time(time)))
     }
-    step("je supprime $ALARM") { (label) -> service.delete(alarm(label).id) }
+    step("je supprime $ALARM") { (label) -> freed = service.delete(alarm(label).id) }
     step("$ALARM sonne le \"([^\"]+)\"") { (label, moment) ->
         now = Formats.moment(moment)
         service.onRing(alarm(label).id)
@@ -140,6 +145,12 @@ private fun StepRegistry<AlarmWorld>.snoozeAssertions() {
     step("$ALARM n'a pas de limite de snoozes") { (label) -> assertNull(alarm(label).snoozesLeft) }
     step("le volume de $ALARM monte sur \"(\\d+)\" secondes") { (label, seconds) ->
         assertEquals(seconds.toInt(), alarm(label).rampSeconds)
+    }
+    step("la pochette de $ALARM est \"([^\"]+)\"") { (label, cover) -> assertEquals(cover, alarm(label).playlistCover) }
+    step("les chansons de la playlist \"([^\"]+)\" sont effacées du téléphone") { (playlist) -> assertEquals(playlist, freed) }
+    step("aucune chanson n'est effacée du téléphone") { assertNull(freed) }
+    step("parmi les playlists \"([^\"]+)\", seules les chansons de \"([^\"]+)\" peuvent être effacées") { (all, free) ->
+        assertEquals(listOf(free), service.unused(all.split(", ")))
     }
     step("$ALARM n'a pas de snooze en attente") { (label) ->
         assertNull(phone.planned[TriggerKey(id(label), TriggerKey.Kind.SNOOZE)])

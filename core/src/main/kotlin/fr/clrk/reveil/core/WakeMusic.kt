@@ -32,7 +32,9 @@ class WakeQueueBuilder(private val source: PlaylistSource, private val random: R
 
 /**
  * Follows the playback of a wake-up queue. Music loops forever; after [maxFailures]
- * consecutive failures (error or start timeout) the session falls back to the ringtone.
+ * consecutive failures (error, missing link or a track silent for [START_TIMEOUT_MS]) the session
+ * falls back to the ringtone, and if even the ringtone fails, to the phone's own alarm ([lastResort]).
+ * Times are milliseconds since the alarm started ringing; ringing stops after [MAX_RING_MS].
  */
 class WakeSession(val queue: List<WakeSource>, private val maxFailures: Int = DEFAULT_MAX_FAILURES) {
     private val music = queue.filterIsInstance<WakeSource.Music>()
@@ -42,11 +44,34 @@ class WakeSession(val queue: List<WakeSource>, private val maxFailures: Int = DE
 
     val current: WakeSource get() = if (fallback) WakeSource.Ringtone else music[index]
 
-    fun onStarted() { failures = 0 }
+    var lastResort = false
+        private set
+    private var waitingSince: Long? = null
+
+    /** The current source was asked to play at [at]: a track that stays silent will be skipped. */
+    fun asked(at: Long) {
+        waitingSince = at.takeIf { current is WakeSource.Music }
+    }
+
+    /** Called every second while ringing: skips a silent track, stops a ring that lasted too long. */
+    fun check(at: Long): RingCheck = when {
+        at >= MAX_RING_MS -> RingCheck.STOP
+        silentSince(at) -> RingCheck.NEXT.also { onFailed() }
+        else -> RingCheck.KEEP
+    }
+
+    private fun silentSince(at: Long) = waitingSince?.let { at - it >= START_TIMEOUT_MS } == true
+
+    fun onStarted() {
+        failures = 0
+        waitingSince = null
+    }
 
     fun onEnded() = advance()
 
     fun onFailed() {
+        waitingSince = null
+        if (fallback) lastResort = true
         failures++
         if (failures >= maxFailures) fallback = true else advance()
     }
@@ -57,5 +82,9 @@ class WakeSession(val queue: List<WakeSource>, private val maxFailures: Int = DE
 
     companion object {
         const val DEFAULT_MAX_FAILURES = 3
+        const val START_TIMEOUT_MS = 10_000L
+        const val MAX_RING_MS = 30 * 60 * 1000L
     }
 }
+
+enum class RingCheck { KEEP, NEXT, STOP }

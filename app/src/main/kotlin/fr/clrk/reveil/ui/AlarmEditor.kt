@@ -6,7 +6,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -18,8 +17,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.TopAppBar
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import fr.clrk.reveil.core.WakeInfo
 import java.time.ZonedDateTime
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -28,7 +25,6 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TimeInput
 import androidx.compose.material3.TimePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
@@ -39,31 +35,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import fr.clrk.reveil.core.Alarm
+import fr.clrk.reveil.core.Recurrence
 import fr.clrk.reveil.core.PlaylistChoice
 import fr.clrk.reveil.core.PlaylistId
 import fr.clrk.reveil.core.PlaylistLink
 import java.time.DayOfWeek
 import java.time.LocalTime
-
-interface EditorActions {
-    fun save(alarm: Alarm)
-    fun delete(alarm: Alarm)
-    fun test(alarm: Alarm)
-    fun prefetch(playlist: String)
-    fun skip(alarm: Alarm)
-    fun close()
-}
-
-object Days {
-    private val letters = listOf("L", "M", "M", "J", "V", "S", "D")
-    val all = DayOfWeek.entries.zip(letters)
-
-    fun summary(days: Set<DayOfWeek>): String = when (days) {
-        emptySet<DayOfWeek>() -> "Une fois"
-        DayOfWeek.entries.toSet() -> "Tous les jours"
-        else -> all.filter { it.first in days }.joinToString(" ") { it.second }
-    }
-}
 
 private val SNOOZE_CHOICES = listOf(5, 9, 10, 15, 20).map { it to "$it" }
 private val MAX_SNOOZE_CHOICES = listOf(1, 2, 3, 5).map { it to "$it" } + (null to "∞")
@@ -79,9 +56,15 @@ private class EditorState(private val initial: Alarm, sharedLink: String, val ti
     var maxSnoozes by mutableStateOf(initial.maxSnoozes)
     var ramp by mutableStateOf(initial.rampSeconds)
 
+    fun setTime(value: LocalTime) {
+        time.hour = value.hour
+        time.minute = value.minute
+    }
+
     fun alarm() = initial.copy(
         time = LocalTime.of(time.hour, time.minute), days = days, label = label,
-        playlistId = playlist?.id?.value, playlistTitle = playlist?.title, snoozeMinutes = snooze, enabled = true,
+        playlistId = playlist?.id?.value, playlistTitle = playlist?.title,
+        playlistCover = playlist?.thumbnail, snoozeMinutes = snooze, enabled = true,
         maxSnoozes = maxSnoozes, rampSeconds = ramp,
     )
 }
@@ -99,14 +82,19 @@ fun AlarmEditor(
 ) {
     val time = rememberTimePickerState(initial.time.hour, initial.time.minute, is24Hour = true)
     val state = remember(initial) { EditorState(initial, sharedLink, time) }
-    Dialog(onDismissRequest = actions::close, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        EditorScaffold(if (existing) "Modifier le réveil" else "Nouveau réveil", state, actions) {
-            EditorForm(state, actions, now, music)
-            if (existing) SavedAlarmActions(initial, actions)
+    val leave = rememberLeave()
+    val flight = LocalFlight.current
+    val gentle = remember(actions) { Leaving(actions, leave, flight, initial.takeIf { existing && it.playlistId != null }) }
+    Layer(gentle::close) {
+        Appear(leave) {
+            EditorScaffold(if (existing) "Modifier le réveil" else "Nouveau réveil", state, gentle) {
+                EditorForm(state, gentle, now, music)
+                if (existing) SavedAlarmActions(initial, gentle)
+            }
         }
     }
     if (state.picking) {
-        PlaylistPicker(onPick = { state.playlist = it; state.picking = false }, onClose = { state.picking = false })
+        PlaylistPicker(EDITOR, onPick = { state.playlist = it }, onClose = { state.picking = false })
     }
 }
 
@@ -132,17 +120,25 @@ private fun EditorScaffold(title: String, state: EditorState, actions: EditorAct
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EditorForm(state: EditorState, actions: EditorActions, now: () -> ZonedDateTime, music: (String) -> String?) {
-    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-        TimeInput(state.time)
-        Text(WakeInfo.announce(state.alarm(), now()).orEmpty(), color = MaterialTheme.colorScheme.primary)
+    Arrives(order = 0, waits = false) { PlaylistField(state, music, actions) }
+    Arrives(order = 1) {
+        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+            TimeWheel(LocalTime.of(state.time.hour, state.time.minute), state::setTime, Modifier.fillMaxWidth())
+            Text(WakeInfo.announce(state.alarm(), now()).orEmpty(), color = MaterialTheme.colorScheme.primary)
+        }
     }
-    DayChips(state.days) { state.days = it }
-    OutlinedTextField(state.label, { state.label = it }, Modifier.fillMaxWidth(), label = { Text("Nom") }, singleLine = true)
-    PlaylistField(state, music, actions)
-    Choices("Montée du volume", RAMP_CHOICES, state.ramp) { state.ramp = it }
-    Choices("Snooze (minutes)", SNOOZE_CHOICES, state.snooze) { state.snooze = it }
-    Choices("Snoozes au maximum", MAX_SNOOZE_CHOICES, state.maxSnoozes) { state.maxSnoozes = it }
-    TextButton(onClick = { actions.test(state.alarm()) }) { Text("Tester le réveil") }
+    Arrives(order = 2) { DayChips(state.days) { state.days = it } }
+    Arrives(order = 3) {
+        OutlinedTextField(state.label, { state.label = it }, Modifier.fillMaxWidth(), label = { Text("Nom") }, singleLine = true)
+    }
+    Arrives(order = 4) {
+        Column {
+            Choices("Montée du volume", RAMP_CHOICES, state.ramp) { state.ramp = it }
+            Choices("Snooze (minutes)", SNOOZE_CHOICES, state.snooze) { state.snooze = it }
+            Choices("Snoozes au maximum", MAX_SNOOZE_CHOICES, state.maxSnoozes) { state.maxSnoozes = it }
+            TextButton(onClick = { actions.test(state.alarm()) }) { Text("Tester le réveil") }
+        }
+    }
 }
 
 @Composable
@@ -178,14 +174,14 @@ private fun PlaylistField(state: EditorState, music: (String) -> String?, action
 
 @Composable
 private fun MusicSummary(choice: PlaylistChoice, status: String?) {
-    PlaylistRow(choice)
+    PlaylistRow(choice, cover = Modifier.spot(EDITOR))
     status?.let { MusicStatus(it, Modifier.padding(bottom = 12.dp)) }
 }
 
 private fun initialChoice(alarm: Alarm, sharedLink: String): PlaylistChoice? {
     PlaylistLink.parse(sharedLink)?.let { return PlaylistChoice(it, "Playlist partagée") }
     val id = alarm.playlistId?.let(::PlaylistId) ?: return null
-    return PlaylistChoice(id, alarm.playlistTitle ?: "Playlist ${id.value}")
+    return PlaylistChoice(id, alarm.playlistTitle ?: "Playlist ${id.value}", thumbnail = alarm.playlistCover)
 }
 
 @Composable
@@ -199,8 +195,11 @@ private fun <T> Choices(title: String, choices: List<Pair<T, String>>, selected:
 @Composable
 private fun DayChips(days: Set<DayOfWeek>, onChange: (Set<DayOfWeek>) -> Unit) {
     FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        Days.all.forEach { (day, letter) ->
-            FilterChip(day in days, { onChange(if (day in days) days - day else days + day) }, label = { Text(letter) })
+        DayOfWeek.entries.forEach { day ->
+            FilterChip(day in days, { onChange(Recurrence.toggle(days, day)) }, label = { Text(Recurrence.letter(day)) })
         }
     }
 }
+
+/** Where the cover sits in the full editor. */
+const val EDITOR = "editor"

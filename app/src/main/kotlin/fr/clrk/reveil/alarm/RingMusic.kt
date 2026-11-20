@@ -5,9 +5,11 @@ import android.net.Uri
 import androidx.core.content.edit
 import androidx.core.net.toUri
 import fr.clrk.reveil.core.Alarm
+import fr.clrk.reveil.core.DayWeather
 import fr.clrk.reveil.core.FallbackPlaylistSource
 import fr.clrk.reveil.core.PlaylistId
 import fr.clrk.reveil.core.PlaylistSource
+import fr.clrk.reveil.core.RecordChange
 import fr.clrk.reveil.core.WakeQueueBuilder
 import fr.clrk.reveil.core.WakeSession
 import fr.clrk.reveil.core.WakeSource
@@ -15,6 +17,7 @@ import fr.clrk.reveil.music.AudioResolver
 import fr.clrk.reveil.music.NewPipePlaylistSource
 import fr.clrk.reveil.music.TrackCache
 import fr.clrk.reveil.music.YtMusicAccount
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.runInterruptible
@@ -43,6 +46,16 @@ class RingMusic(private val context: Context, playlistId: String?) {
         if (music.cached) Uri.fromFile(cache!!.file(music.track)) else AudioResolver.streamUrl(music.track).toUri()
     }
 
+    /** The track's file or stream, null when its link cannot be obtained: the track is then skipped. */
+    @Suppress("TooGenericExceptionCaught")
+    suspend fun linkOf(music: WakeSource.Music): Uri? = try {
+        uriOf(music)
+    } catch (cancel: CancellationException) {
+        throw cancel
+    } catch (_: Exception) {
+        null
+    }
+
     fun started(music: WakeSource.Music) = cache?.markPlayed(music.track)
 
     private companion object {
@@ -53,21 +66,54 @@ class RingMusic(private val context: Context, playlistId: String?) {
 
 /** What the lock-screen activity displays while ringing. */
 object RingState {
-    /** [snooze] describes the snooze button, null once no snooze is left. */
-    data class Ui(val label: String, val nowPlaying: String, val snooze: String? = null, val cover: String? = null)
+    /**
+     * [snooze] describes the snooze button, null once no snooze is left.
+     * [startedAt] and [rampSeconds] drive the morning light; [weather] is today's forecast when known.
+     */
+    data class Ui(
+        val snooze: String? = null,
+        val cover: String? = null,
+        val startedAt: Long = System.currentTimeMillis(),
+        val rampSeconds: Int = Alarm.DEFAULT_RAMP_SECONDS,
+        val weather: DayWeather? = null,
+        val change: RecordChange? = null,
+        val previousCover: String? = null,
+    )
 
     val ui = kotlinx.coroutines.flow.MutableStateFlow<Ui?>(null)
 
-    fun show(alarm: Alarm?) {
-        ui.value = Ui(alarm?.label.orEmpty(), "", alarm?.let(::snoozeText) ?: Alarm.DEFAULT_SNOOZE_MINUTES.let { "$it min" })
+    fun show(alarm: Alarm?, weather: DayWeather?) {
+        val snooze = alarm?.let(::snoozeText) ?: Alarm.DEFAULT_SNOOZE_MINUTES.let { "$it min" }
+        ui.value = Ui(snooze, rampSeconds = alarm?.rampSeconds ?: Alarm.DEFAULT_RAMP_SECONDS, weather = weather)
+    }
+
+    fun weather(day: DayWeather?) {
+        if (day != null) ui.value = ui.value?.copy(weather = day)
     }
 
     fun playing(source: WakeSource) {
         val track = (source as? WakeSource.Music)?.track
-        ui.value = ui.value?.copy(nowPlaying = track?.title ?: "Sonnerie de secours", cover = track?.let { cover(it.id) })
+        ui.value = ui.value?.copy(cover = track?.let { cover(it.id) })
     }
 
+    /** The track is over (or failed): the record starts changing, keeping the old cover until it stops. */
+    fun ended() {
+        val current = ui.value ?: return
+        val change = RecordChange.ended(current.change, sinceStart(current))
+        if (change != current.change) ui.value = current.copy(change = change, previousCover = current.cover)
+    }
+
+    /** The next track really plays: the arm may land. */
+    fun started() {
+        val current = ui.value ?: return
+        ui.value = current.copy(change = current.change?.started(sinceStart(current)))
+    }
+
+    private fun sinceStart(current: Ui) = System.currentTimeMillis() - current.startedAt
+
     fun hide() { ui.value = null }
+
+    fun noSnoozeLeft() { ui.value = ui.value?.copy(snooze = null) }
 
     private fun cover(videoId: String) = "https://i.ytimg.com/vi/$videoId/hqdefault.jpg"
 

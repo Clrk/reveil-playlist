@@ -1,12 +1,12 @@
 package fr.clrk.reveil.ui
 
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import app.cash.paparazzi.DeviceConfig
 import app.cash.paparazzi.Paparazzi
-import fr.clrk.reveil.alarm.RingState
 import fr.clrk.reveil.core.Alarm
+import fr.clrk.reveil.core.HalfDay
+import fr.clrk.reveil.core.Sky
 import fr.clrk.reveil.core.PlaylistChoice
 import fr.clrk.reveil.core.PlaylistId
 import fr.clrk.reveil.core.SearchResult
@@ -31,6 +31,8 @@ class ScreensTest {
     private val sunday = ZonedDateTime.of(2026, 11, 15, 22, 48, 0, 0, ZoneId.of("Europe/Paris"))
     private val ready = mapOf("1" to "✓ Prête pour le réveil, même hors ligne")
 
+    private val matin = WeatherLine("Claix", HalfDay(Sky.CLEAR, 4))
+
     private val noActions = object : EditorActions {
         override fun save(alarm: Alarm) = Unit
         override fun delete(alarm: Alarm) = Unit
@@ -46,14 +48,36 @@ class ScreensTest {
         override fun toggle(alarm: Alarm, enabled: Boolean) = Unit
         override fun unskip(alarm: Alarm) = Unit
         override fun delete(alarm: Alarm) = Unit
+        override fun weather() = Unit
     }
 
     private fun shot(content: @Composable () -> Unit) =
-        paparazzi.snapshot { MaterialTheme(colorScheme = lightColorScheme()) { content() } }
+        paparazzi.settled { MaterialTheme(colorScheme = reveilColors()) { content() } }
 
     @Test
     fun liste() = shot {
-        AlarmListScreen(ListUi(listOf(boulot, weekend), next, offline = ready), noListEvents)
+        AlarmListScreen(ListUi(listOf(boulot, weekend), next, offline = ready, weather = matin), noListEvents)
+    }
+
+    @Test
+    fun listeNomLong() = shot {
+        val long = WakeInfo.NextCard("lun. 07:00", "dans 8 h 12 min · Aller au travail en passant par la boulangerie")
+        AlarmListScreen(ListUi(listOf(boulot, weekend), long, offline = ready, weather = matin), noListEvents)
+    }
+
+    @Test
+    fun listeYouTubeEnPanne() = shot {
+        AlarmListScreen(ListUi(listOf(boulot, weekend), next, offline = ready, youtubeBroken = true), noListEvents)
+    }
+
+    @Test
+    fun listeMiseAJour() = shot {
+        AlarmListScreen(ListUi(listOf(boulot, weekend), next, offline = ready, update = UpdateNote("0.9.8")), noListEvents)
+    }
+
+    @Test
+    fun listeMiseAJourTelechargement() = shot {
+        AlarmListScreen(ListUi(listOf(boulot, weekend), next, offline = ready, update = UpdateNote("0.9.8", 0.42f)), noListEvents)
     }
 
     @Test
@@ -115,22 +139,12 @@ class ScreensTest {
 
     @Test
     fun rechercheErreur() {
-        val message = SearchResult.Message("YouTube Music ne répond pas. Vérifie ta connexion et réessaie.")
+        val message = SearchResult.Message("YouTube Music ne répond pas. Vérifiez votre connexion et réessayez.")
         picker(PickerUi("matin", message, tab = PickerTab.SEARCH))
     }
 
     @Test
     fun editionSansPlaylist() = shot { AlarmEditor(weekend, "", noActions, existing = true, now = { sunday }) }
-
-    @Test
-    fun sonnerie() = paparazzi.snapshot {
-        RingScreen(RingState.Ui("Boulot", "Norah Jones - Come Away With Me", "10 min · encore 3 fois"), "07:00") {}
-    }
-
-    @Test
-    fun sonnerieSansSnooze() = paparazzi.snapshot {
-        RingScreen(RingState.Ui("Boulot", "Norah Jones - Come Away With Me", snooze = null), "07:20") {}
-    }
 
     @Test
     fun listeAvertissement() = shot {
@@ -152,16 +166,22 @@ class ScreensTest {
     @Test
     fun accueil() = shot {
         val steps = listOf(
-            PermissionStep("Notifications", "Pour sonner et afficher le rappel une heure avant.", "", true) {},
+            PermissionStep("Notifications", "Pour sonner, et vous rappeler le réveil une heure avant.", "", true) {},
             PermissionStep("Plein écran", "Pour afficher le réveil par-dessus l'écran verrouillé.", "", false) {},
-            PermissionStep("Batterie", "Pour télécharger tes musiques la veille, même téléphone en veille.", "", false) {},
+            PermissionStep("Batterie", "Pour préparer vos morceaux la veille, téléphone en veille.", "", false) {},
         )
-        OnboardingScreen(steps) {}
+        OnboardingScreen(steps, null, {}) {}
+    }
+
+    @Test
+    fun listePreparation() = shot {
+        val ui = ListUi(listOf(boulot, weekend), next, offline = mapOf("1" to "Préparation… 40 %"), preparing = mapOf("1" to 0.4f))
+        AlarmListScreen(ui, noListEvents)
     }
 
     @Test
     fun listeVide() = shot {
-        val none = WakeInfo.NextCard("Aucun réveil prévu", "Appuie sur + pour en créer un")
+        val none = WakeInfo.NextCard("Aucun réveil prévu", "Touchez + pour en créer un")
         AlarmListScreen(ListUi(emptyList(), none), noListEvents)
     }
 }

@@ -21,7 +21,7 @@ class Permissions(private val activity: Activity) {
     fun warnings() = steps().filterNot { it.granted }.map { it.warning to it.fix }
 
     private fun notificationStep() = PermissionStep(
-        "Notifications", "Pour sonner et afficher le rappel une heure avant.",
+        "Notifications", "Pour sonner, et vous rappeler le réveil une heure avant.",
         "Notifications désactivées : le réveil ne pourra pas s'afficher",
         notifications.areNotificationsEnabled(),
     ) { openSettings(Settings.ACTION_APP_NOTIFICATION_SETTINGS) }
@@ -37,7 +37,7 @@ class Permissions(private val activity: Activity) {
     }
 
     private fun batteryStep() = PermissionStep(
-        "Batterie", "Pour télécharger tes musiques la veille, même téléphone en veille.",
+        "Batterie", "Pour préparer vos morceaux la veille, téléphone en veille.",
         "L'économie de batterie peut empêcher de préparer les musiques hors ligne",
         activity.getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(activity.packageName),
         ::askBatteryExemption,

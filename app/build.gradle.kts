@@ -13,8 +13,8 @@ android {
         applicationId = "fr.clrk.reveil"
         minSdk = 28
         targetSdk = 36
-        versionCode = 9
-        versionName = "0.7.2"
+        versionCode = 24
+        versionName = "0.9.8"
     }
 
     buildTypes {
@@ -33,7 +33,8 @@ android {
     buildFeatures { compose = true }
     lint {
         warningsAsErrors = true
-        disable += setOf("GradleDependency", "NewerVersionAvailable", "InlinedApi")
+        // Checks whose verdict depends on what was published since, not on this code: they would fail an untouched branch.
+        disable += setOf("GradleDependency", "NewerVersionAvailable", "InlinedApi", "OldTargetApi", "AndroidGradlePluginVersion")
     }
     packaging { resources.excludes += setOf("META-INF/{AL2.0,LGPL2.1}", "META-INF/versions/9/OSGI-INF/MANIFEST.MF") }
 }
@@ -61,3 +62,6 @@ dependencies {
 
     testImplementation("junit:junit:4.13.2")
 }
+
+// `-Psmoke` runs YouTubeSmokeTest against the real YouTube (daily workflow); it is skipped otherwise.
+tasks.withType<Test>().configureEach { systemProperty("smoke", (findProperty("smoke") != null).toString()) }

@@ -4,7 +4,7 @@ set -e
 MAX_TOKENS=5000
 status=0
 for file in $(git diff --cached --name-only --diff-filter=ACM); do
-  case "$file" in *.jar|*.png|*.webp|*.apk|gradlew|gradlew.bat) continue ;; esac
+  case "$file" in *.jar|*.png|*.gif|*.mp4|*.webp|*.apk|gradlew|gradlew.bat) continue ;; esac
   bytes=$(git cat-file -s ":$file")
   tokens=$((bytes / 4))
   if [ "$tokens" -gt "$MAX_TOKENS" ]; then

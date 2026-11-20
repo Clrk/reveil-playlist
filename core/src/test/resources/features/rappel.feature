@@ -34,7 +34,7 @@ Fonctionnalité: Savoir quand et avec quoi le réveil sonnera
     Alors la carte du prochain réveil affiche "mar. 07:00" et "dans 8 h 12 min"
 
   Scénario: Sans alarme active, la carte l'indique
-    Alors la carte du prochain réveil affiche "Aucun réveil prévu" et "Appuie sur + pour en créer un"
+    Alors la carte du prochain réveil affiche "Aucun réveil prévu" et "Touchez + pour en créer un"
 
   Scénario: Une playlist dont la musique est en cache est prête, sans détail technique
     Soit l'alarme "Boulot" à "07:00" répétée "mar" avec la playlist "PLchill" nommée "Chill matin"

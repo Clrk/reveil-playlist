@@ -1,6 +1,5 @@
 package fr.clrk.reveil.alarm
 
-import android.app.Notification
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
@@ -9,7 +8,7 @@ import android.content.pm.ServiceInfo
 import android.media.RingtoneManager
 import android.os.IBinder
 import android.os.PowerManager
-import androidx.core.app.NotificationCompat
+import android.os.SystemClock
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import androidx.media3.common.AudioAttributes
@@ -18,21 +17,22 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
-import fr.clrk.reveil.R
-import fr.clrk.reveil.ReveilApp
 import fr.clrk.reveil.app
 import fr.clrk.reveil.core.Alarm
+import fr.clrk.reveil.core.RingCheck
 import fr.clrk.reveil.core.VolumeRamp
 import fr.clrk.reveil.core.WakeSession
 import fr.clrk.reveil.core.WakeSource
-import fr.clrk.reveil.ui.RingActivity
-import kotlinx.coroutines.CancellationException
+import fr.clrk.reveil.weather.WeatherRepository
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /** Foreground service that rings: shuffled music with automatic fallback to the system alarm sound. */
 class RingService : Service() {
@@ -42,8 +42,8 @@ class RingService : Service() {
     private var alarmId: String? = null
     private var music: RingMusic? = null
     private var session: WakeSession? = null
-    private var watchdog: Job? = null
     private var loading: Job? = null
+    private var ringingSince = 0L
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -69,11 +69,14 @@ class RingService : Service() {
     private fun ring(id: String) {
         alarmId = id
         val alarm = app.alarms.find(id)
-        RingState.show(alarm)
         val canSnooze = alarm?.snoozesLeft != 0
         val type = ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
-        ServiceCompat.startForeground(this, NOTIFICATION, notification(alarm?.label, canSnooze), type)
-        wakeLock.acquire(MAX_RING_MS)
+        ServiceCompat.startForeground(this, NOTIFICATION, ringNotification(alarm?.label, canSnooze), type)
+        ringingSince = SystemClock.elapsedRealtime()
+        wakeLock.acquire(WakeSession.MAX_RING_MS)
+        val weather = WeatherRepository(this)
+        RingState.show(alarm, weather.day())
+        scope.launch { RingState.weather(withContext(Dispatchers.IO) { weather.refresh(); weather.day() }) }
         scope.rampVolume(player, VolumeRamp(alarm?.rampSeconds ?: Alarm.DEFAULT_RAMP_SECONDS))
         scope.launch {
             val ringMusic = RingMusic(this@RingService, alarm?.playlistId)
@@ -81,45 +84,51 @@ class RingService : Service() {
             session = ringMusic.session()
             playCurrent()
         }
-        scope.launch {
-            delay(MAX_RING_MS)
-            finish { app.alarms.dismiss(it) }
+        watch()
+    }
+
+    private fun watch() = scope.launch {
+        while (isActive) {
+            delay(TICK_MS)
+            tick()
         }
     }
 
-    /** Snoozing is refused once the limit is reached: the alarm keeps ringing. */
+    /** Every second: the core skips a silent track and ends a ring that lasted too long. */
+    private fun tick() = when (session?.check(elapsed)) {
+        RingCheck.NEXT -> playNext()
+        RingCheck.STOP -> finish { app.alarms.dismiss(it) }
+        RingCheck.KEEP, null -> Unit
+    }
+
+    private val elapsed get() = SystemClock.elapsedRealtime() - ringingSince
+
+    private fun playNext() {
+        RingState.ended()
+        playCurrent()
+    }
+
+    /** Snoozing is refused once the limit is reached: the alarm keeps ringing and the button goes away. */
     private fun snooze() {
         val id = alarmId ?: return
-        if (app.alarms.snooze(id)) finish { }
+        if (app.alarms.snooze(id)) finish { } else RingState.noSnoozeLeft()
     }
 
     private fun playCurrent() {
-        val current = session?.current ?: return
-        watchdog?.cancel()
+        val session = session ?: return
+        val current = session.current
         loading?.cancel()
+        session.asked(elapsed)
         RingState.playing(current)
         if (current == WakeSource.Ringtone) return playRingtone()
         val track = (current as WakeSource.Music)
-        watchdog = scope.launch {
-            delay(START_TIMEOUT_MS)
-            onFailure()
-        }
         loading = scope.launch {
-            val uri = resolve(track) ?: return@launch onFailure()
+            val uri = music?.linkOf(track) ?: return@launch onFailure()
             player.setMediaItem(MediaItem.fromUri(uri))
             player.repeatMode = Player.REPEAT_MODE_OFF
             player.prepare()
             player.play()
         }
-    }
-
-    @Suppress("TooGenericExceptionCaught")
-    private suspend fun resolve(track: WakeSource.Music) = try {
-        music?.uriOf(track)
-    } catch (cancel: CancellationException) {
-        throw cancel
-    } catch (_: Exception) {
-        null
     }
 
     private fun playRingtone() {
@@ -131,10 +140,11 @@ class RingService : Service() {
         player.play()
     }
 
+    /** A track that fails or has no link is skipped; the core decides when to fall back. */
     private fun onFailure() {
-        if (session?.current == WakeSource.Ringtone) return lastResortRingtone()
-        session?.onFailed()
-        playCurrent()
+        val session = session?.takeUnless { it.lastResort } ?: return
+        session.onFailed()
+        if (session.lastResort) lastResortRingtone() else playNext()
     }
 
     /** ExoPlayer could not even play the system sound: let the platform ring. */
@@ -147,15 +157,16 @@ class RingService : Service() {
 
     private inner class PlayerEvents : Player.Listener {
         override fun onIsPlayingChanged(isPlaying: Boolean) {
+            if (isPlaying) RingState.started()
             val current = session?.current as? WakeSource.Music ?: return
             if (!isPlaying) return
-            watchdog?.cancel()
             session?.onStarted()
             music?.started(current)
         }
 
         override fun onPlaybackStateChanged(state: Int) {
             if (state == Player.STATE_ENDED && session?.current is WakeSource.Music) {
+                RingState.ended()
                 session?.onEnded()
                 playCurrent()
             }
@@ -179,30 +190,12 @@ class RingService : Service() {
         super.onDestroy()
     }
 
-    private fun notification(label: String?, canSnooze: Boolean): Notification {
-        val fullScreen = PendingIntent.getActivity(this, 0, Intent(this, RingActivity::class.java), FLAGS)
-        return NotificationCompat.Builder(this, ReveilApp.CHANNEL_RING)
-            .setSmallIcon(R.drawable.ic_alarm)
-            .setContentTitle(label?.ifBlank { null } ?: "Réveil")
-            .setCategory(NotificationCompat.CATEGORY_ALARM)
-            .setPriority(NotificationCompat.PRIORITY_MAX)
-            .setOngoing(true)
-            .setFullScreenIntent(fullScreen, true)
-            .apply { if (canSnooze) addAction(0, "Snooze", action(ACTION_SNOOZE)) }
-            .addAction(0, "Arrêter", action(ACTION_DISMISS))
-            .build()
-    }
-
-    private fun action(name: String) =
-        PendingIntent.getService(this, name.hashCode(), Intent(this, RingService::class.java).setAction(name), FLAGS)
-
     companion object {
         const val ACTION_SNOOZE = "fr.clrk.reveil.SNOOZE"
         const val ACTION_DISMISS = "fr.clrk.reveil.DISMISS"
         private const val NOTIFICATION = 1
-        private const val START_TIMEOUT_MS = 10_000L
-        private const val MAX_RING_MS = 30 * 60 * 1000L
-        private const val FLAGS = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        private const val TICK_MS = 1_000L
+        internal const val FLAGS = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
 
         fun start(context: Context, alarmId: String) = ContextCompat.startForegroundService(
             context,
