@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -16,7 +17,12 @@ import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.ImageShader
+import androidx.compose.ui.graphics.ShaderBrush
+import androidx.compose.ui.graphics.TileMode
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.scale
@@ -26,7 +32,9 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.imageResource
 import fr.clrk.reveil.R
 import fr.clrk.reveil.core.ArmPose
+import fr.clrk.reveil.core.CoverCrop
 import fr.clrk.reveil.core.LightStage
+import fr.clrk.reveil.core.RainDrift
 import fr.clrk.reveil.core.Sky
 
 /** Plate size of the Gemini pictures, and the x the screen is centred on (the turntable). */
@@ -35,7 +43,16 @@ internal const val PLATE_H = 1024f
 private const val FOCUS_X = 310f
 
 /** The six pictures share one framing: night, then a lit picture per sky (sun = pink, then gold on top). */
-private class Plates(val night: ImageBitmap, val pink: ImageBitmap, val gold: ImageBitmap, val weather: Map<Sky, ImageBitmap>)
+private class Plates(
+    val night: ImageBitmap,
+    val pink: ImageBitmap,
+    val gold: ImageBitmap,
+    val weather: Map<Sky, ImageBitmap>,
+    val rain: Rain,
+)
+
+/** Drop shadow tiles (multiplied on the light) and where the light falls on the turntable. */
+private class Rain(val layers: List<ImageBitmap>, val patch: ImageBitmap)
 
 @Composable
 private fun plates() = Plates(
@@ -48,13 +65,17 @@ private fun plates() = Plates(
         Sky.CLOUDY to ImageBitmap.imageResource(R.drawable.scene_nuages),
         Sky.FROST to ImageBitmap.imageResource(R.drawable.scene_gel),
     ),
+    Rain(
+        listOf(ImageBitmap.imageResource(R.drawable.rain_drops_a), ImageBitmap.imageResource(R.drawable.rain_drops_b)),
+        ImageBitmap.imageResource(R.drawable.rain_patch),
+    ),
 )
 
 /**
  * What the room shows: today's [sky] lit to [light]; the record label is the track [cover] turned by [spin] degrees;
- * the tonearm follows [arm].
+ * the tonearm follows [arm]; [seconds] since the ring started slides the rain drop shadows.
  */
-data class SceneState(val light: LightStage, val sky: Sky, val cover: Painter?, val spin: Float, val arm: ArmPose)
+data class SceneState(val light: LightStage, val sky: Sky, val cover: Painter?, val spin: Float, val arm: ArmPose, val seconds: Float = 0f)
 
 /** The room at dawn: the night picture, lit up by the morning picture of today's sky as the light rises. */
 @Composable
@@ -82,6 +103,23 @@ private fun DrawScope.litRoom(plates: Plates, state: SceneState, sunny: Boolean)
     plate(plates.weather[state.sky] ?: plates.pink)
     if (sunny) plate(plates.gold, state.light.gold)
     label(state.cover, state.spin, 1f)
+    if (state.sky == Sky.RAIN) rainShadows(plates.rain, state.seconds)
+}
+
+/** Two layers of drop shadows sliding toward the window, kept to the sunlit patch, multiplied on the light. */
+private fun DrawScope.rainShadows(rain: Rain, seconds: Float) {
+    val bounds = Rect(0f, 0f, PLATE_W, PLATE_H)
+    drawContext.canvas.saveLayer(bounds, Paint().apply { blendMode = BlendMode.Multiply })
+    rain.layers.forEachIndexed { layer, tile ->
+        val drift = RainDrift.offset(layer, seconds)
+        val dx = drift.x % tile.width
+        val dy = drift.y % tile.height
+        val brush = ShaderBrush(ImageShader(tile, TileMode.Repeated, TileMode.Repeated))
+        val blend = if (layer == 0) BlendMode.SrcOver else BlendMode.Multiply
+        translate(dx, dy) { drawRect(brush, Offset(-dx, -dy), Size(PLATE_W, PLATE_H), blendMode = blend) }
+    }
+    drawImage(rain.patch, dstSize = IntSize(PLATE_W.toInt(), PLATE_H.toInt()), blendMode = BlendMode.DstIn)
+    drawContext.canvas.restore()
 }
 
 /** The lit picture fades in while the sun patch enters from the window side (only with sun). */
@@ -103,26 +141,59 @@ private fun sweepBrush(edge: Float): Brush {
 }
 
 private fun DrawScope.plate(image: ImageBitmap, alpha: Float = 1f) =
-    drawImage(image, dstSize = androidx.compose.ui.unit.IntSize(PLATE_W.toInt(), PLATE_H.toInt()), alpha = alpha)
+    drawImage(image, dstSize = IntSize(PLATE_W.toInt(), PLATE_H.toInt()), alpha = alpha)
 
 /** The record label is an ellipse on the tilted platter: draw the cover in a circle, squashed and spun. */
 private fun DrawScope.label(cover: Painter?, spin: Float, brightness: Float) {
-    cover ?: return
     withTransform({
         translate(LABEL_X, LABEL_Y)
         rotate(LABEL_TILT, Offset.Zero)
         scale(1f, LABEL_SQUASH, Offset.Zero)
         rotate(spin, Offset.Zero)
     }) {
+        grooves(brightness)
         val circle = Path().apply { addOval(Rect(Offset.Zero, LABEL_R)) }
-        clipPath(circle) {
-            translate(-LABEL_R, -LABEL_R) {
-                with(cover) { draw(Size(LABEL_R * 2, LABEL_R * 2), colorFilter = dim(brightness)) }
-            }
-        }
+        if (cover != null) clipPath(circle) { centreCrop(cover, brightness) }
         drawCircle(Color(0xFFCFC9C0), radius = 1.6f, center = Offset.Zero)
     }
 }
+
+/** Draws the centre square of the cover over the label circle, scaled, never stretched. */
+private fun DrawScope.centreCrop(cover: Painter, brightness: Float) {
+    val known = cover.intrinsicSize.isSpecified && cover.intrinsicSize.minDimension > 0f
+    val image = if (known) cover.intrinsicSize else Size(1f, 1f)
+    val crop = CoverCrop.of(image.width, image.height)
+    val k = LABEL_R * 2 / crop.side
+    translate(-LABEL_R - crop.x * k, -LABEL_R - crop.y * k) {
+        with(cover) { draw(Size(image.width * k, image.height * k), colorFilter = dim(brightness)) }
+    }
+}
+
+/**
+ * Faint worn arcs and dust on the vinyl, turning with the label: the eye reads the whole record spinning,
+ * while the photographed reflections stay still as they would under a fixed window.
+ */
+private fun DrawScope.grooves(brightness: Float) {
+    val shine = Color(0xFFF3E6D3).copy(alpha = 0.05f + 0.13f * brightness)
+    GROOVES.forEach { (radius, start, sweep) ->
+        drawArc(shine, start, sweep, useCenter = false, topLeft = Offset(-radius, -radius), size = Size(radius * 2, radius * 2),
+            style = Stroke(width = 0.9f))
+    }
+    DUST.forEach { (radius, angle) ->
+        val a = Math.toRadians(angle.toDouble())
+        drawCircle(shine, 0.9f, Offset((radius * kotlin.math.cos(a)).toFloat(), (radius * kotlin.math.sin(a)).toFloat()))
+    }
+}
+
+/** Radius, start angle and sweep of the worn arcs; radius and angle of the dust specks. */
+private val GROOVES = listOf(
+    Triple(52f, 10f, 70f),
+    Triple(63f, 160f, 50f),
+    Triple(74f, 250f, 85f),
+    Triple(88f, 40f, 35f),
+    Triple(97f, 200f, 60f),
+)
+private val DUST = listOf(58f to 120f, 71f to 330f, 84f to 205f, 93f to 75f)
 
 private fun dim(brightness: Float): ColorFilter? =
     if (brightness >= 1f) null else ColorFilter.colorMatrix(ColorMatrix().apply { setToScale(brightness, brightness, brightness, 1f) })

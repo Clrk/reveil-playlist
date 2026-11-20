@@ -88,7 +88,7 @@ internal fun RingScreen(
             Box(Modifier.fillMaxSize()) {
                 val arm = if (slide > 0f) Tonearm.pose(slide) else Tonearm.start(time.toMillis())
                 val sky = DayWeather.sceneOf(ui.weather)
-                val scene = SceneState(light, sky, cover, Turntable.angle(time.toMillis()), arm)
+                val scene = SceneState(light, sky, cover, Turntable.angle(time.toMillis()), arm, time.toMillis() / MS_PER_SECOND)
                 MorningScene(scene, Modifier.fillMaxSize())
                 val top = Modifier.align(Alignment.TopCenter).systemBarsPadding().padding(top = 48.dp).alpha(light.text)
                 RingClock(now, today, ui.weather, top)
@@ -101,3 +101,5 @@ internal fun RingScreen(
         }
     }
 }
+
+private const val MS_PER_SECOND = 1000f

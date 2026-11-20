@@ -31,6 +31,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -75,16 +76,24 @@ private fun Thumb(offset: Animatable<Float, *>, max: Float, onStop: () -> Unit) 
             .background(MaterialTheme.colorScheme.primary, CircleShape)
             .draggable(
                 orientation = Orientation.Horizontal,
-                state = rememberDraggableState { delta -> scope.launch { offset.snapTo((offset.value + delta).coerceIn(0f, max)) } },
-                onDragStopped = { if (offset.value >= max * STOP_AT) settle(offset, max, onStop) else offset.animateTo(0f) },
+                state = rememberDraggableState { delta ->
+                    scope.launch(start = CoroutineStart.UNDISPATCHED) { offset.snapTo((offset.value + delta).coerceIn(0f, max)) }
+                },
+                onDragStopped = {
+                    val target = if (offset.value < max * STOP_AT) 0f else max
+                    if (target == max) scope.launch { stopAfterSettle(onStop) }
+                    offset.animateTo(target)
+                },
             ),
         contentAlignment = Alignment.Center,
     ) { }
 }
 
-/** Finishes the slide on its own, waits for the tonearm to land, then stops. */
-private suspend fun settle(offset: Animatable<Float, *>, max: Float, onStop: () -> Unit) {
-    offset.animateTo(max)
+/**
+ * Stops once the tonearm has had time to land. Kept apart from the thumb animation, which a late drag
+ * event can cancel: the stop itself must never be lost.
+ */
+private suspend fun stopAfterSettle(onStop: () -> Unit) {
     delay(SETTLE_MS)
     onStop()
 }
