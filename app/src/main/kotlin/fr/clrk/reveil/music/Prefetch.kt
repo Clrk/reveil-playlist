@@ -13,7 +13,10 @@ import androidx.work.workDataOf
 import fr.clrk.reveil.core.Alarm
 import fr.clrk.reveil.core.FallbackPlaylistSource
 import fr.clrk.reveil.core.PlaylistId
+import fr.clrk.reveil.core.PrefetchOutcome
 import fr.clrk.reveil.core.PrefetchPolicy
+import fr.clrk.reveil.core.PrefetchReport
+import fr.clrk.reveil.core.PrefetchResult
 import fr.clrk.reveil.core.Track
 import fr.clrk.reveil.core.WakeInfo
 import fr.clrk.reveil.weather.WeatherRepository
@@ -32,7 +35,7 @@ class PrefetchWorker(context: Context, params: WorkerParameters) : CoroutineWork
         WeatherRepository(applicationContext).refresh()
         val playlist = PlaylistId(inputData.getString(KEY_PLAYLIST) ?: return@withContext Result.failure())
         val source = FallbackPlaylistSource(YtMusicAccount(applicationContext), NewPipePlaylistSource())
-        val tracks = runCatching { source.tracks(playlist) }.getOrNull() ?: return@withContext giveUp()
+        val tracks = runCatching { source.tracks(playlist) }.getOrNull() ?: return@withContext report(null, 0)
         refresh(TrackCache(applicationContext, playlist), tracks)
     }
 
@@ -41,8 +44,9 @@ class PrefetchWorker(context: Context, params: WorkerParameters) : CoroutineWork
         plan.evict.forEach(cache::remove)
         val stored = store(plan.download, cache)
         if (cache.played().size >= tracks.size - CAPACITY) cache.forgetPlayed()
-        if (stored == plan.download.size) cache.remember(tracks)
-        return if (stored == 0 && plan.download.isNotEmpty()) giveUp() else Result.success()
+        val report = PrefetchOutcome.of(plan.download.size, stored, byHand)
+        if (report.upToDate) cache.remember(tracks)
+        return result(report)
     }
 
     /** Downloads each track, reporting progress; returns how many succeeded. */
@@ -51,8 +55,15 @@ class PrefetchWorker(context: Context, params: WorkerParameters) : CoroutineWork
         runCatching { cache.store(track, AudioResolver.streamUrl(track)) }.isSuccess
     }
 
-    /** A hand-started download reports the failure; the evening one tries again later. */
-    private fun giveUp() = if (inputData.getBoolean(KEY_NOW, false)) Result.failure() else Result.retry()
+    private val byHand get() = inputData.getBoolean(KEY_NOW, false)
+
+    private fun report(planned: Int?, stored: Int) = result(PrefetchOutcome.of(planned, stored, byHand))
+
+    private fun result(report: PrefetchReport): Result = when (report.result) {
+        PrefetchResult.DONE -> Result.success()
+        PrefetchResult.RETRY_LATER -> Result.retry()
+        PrefetchResult.FAILED -> Result.failure()
+    }
 
     companion object {
         const val KEY_PLAYLIST = "playlist"

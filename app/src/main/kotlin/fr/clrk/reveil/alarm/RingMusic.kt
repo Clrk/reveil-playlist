@@ -17,6 +17,7 @@ import fr.clrk.reveil.music.AudioResolver
 import fr.clrk.reveil.music.NewPipePlaylistSource
 import fr.clrk.reveil.music.TrackCache
 import fr.clrk.reveil.music.YtMusicAccount
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.runInterruptible
@@ -43,6 +44,16 @@ class RingMusic(private val context: Context, playlistId: String?) {
 
     suspend fun uriOf(music: WakeSource.Music): Uri = withContext(Dispatchers.IO) {
         if (music.cached) Uri.fromFile(cache!!.file(music.track)) else AudioResolver.streamUrl(music.track).toUri()
+    }
+
+    /** The track's file or stream, null when its link cannot be obtained: the track is then skipped. */
+    @Suppress("TooGenericExceptionCaught")
+    suspend fun linkOf(music: WakeSource.Music): Uri? = try {
+        uriOf(music)
+    } catch (cancel: CancellationException) {
+        throw cancel
+    } catch (_: Exception) {
+        null
     }
 
     fun started(music: WakeSource.Music) = cache?.markPlayed(music.track)
