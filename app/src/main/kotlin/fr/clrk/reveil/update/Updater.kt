@@ -47,7 +47,7 @@ class Updater(private val context: Context) {
         }
         installer.openSession(installer.createSession(params)).use { session ->
             session.openWrite("update.apk", 0, apk.length()).use { out -> apk.inputStream().use { it.copyTo(out) } }
-            session.commit(done(background).intentSender)
+            session.commit(done(background, update.version).intentSender)
         }
         true
     }.getOrDefault(false)
@@ -75,8 +75,11 @@ class Updater(private val context: Context) {
         }
     }
 
-    private fun done(background: Boolean): PendingIntent = PendingIntent.getBroadcast(
-        context, 0, Intent(context, UpdateReceiver::class.java).putExtra(UpdateReceiver.BACKGROUND, background),
+    private fun done(background: Boolean, version: String): PendingIntent = PendingIntent.getBroadcast(
+        context, 0,
+        Intent(context, UpdateReceiver::class.java)
+            .putExtra(UpdateReceiver.BACKGROUND, background)
+            .putExtra(UpdateReceiver.VERSION, version),
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
     )
 

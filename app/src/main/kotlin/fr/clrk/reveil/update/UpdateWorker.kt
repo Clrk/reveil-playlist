@@ -16,7 +16,10 @@ import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 
-/** A few times a day, on Wi-Fi: installs a newer version unattended, never close to a wake-up. */
+/**
+ * A few times a day, on Wi-Fi: installs a newer version unattended (Android 12+), never close to a wake-up.
+ * Before Android 12 Android needs a tap: the version is downloaded and a notification offers to install it.
+ */
 class UpdateWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         val updater = Updater(applicationContext)
