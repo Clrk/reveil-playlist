@@ -92,10 +92,10 @@ class RingService : Service() {
         }
     }
 
-    /** Snoozing is refused once the limit is reached: the alarm keeps ringing. */
+    /** Snoozing is refused once the limit is reached: the alarm keeps ringing and the button goes away. */
     private fun snooze() {
         val id = alarmId ?: return
-        if (app.alarms.snooze(id)) finish { }
+        if (app.alarms.snooze(id)) finish { } else RingState.noSnoozeLeft()
     }
 
     private fun playCurrent() {

@@ -52,9 +52,9 @@ class RingActivity : ComponentActivity() {
         }
     }
 
+    /** The screen closes only once the service has really stopped ringing (the state goes null). */
     private fun send(action: String) {
         RingService.send(this, action)
-        finish()
     }
 }
 

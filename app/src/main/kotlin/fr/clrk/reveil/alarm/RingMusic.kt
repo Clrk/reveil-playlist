@@ -86,6 +86,8 @@ object RingState {
 
     fun hide() { ui.value = null }
 
+    fun noSnoozeLeft() { ui.value = ui.value?.copy(snooze = null) }
+
     private fun cover(videoId: String) = "https://i.ytimg.com/vi/$videoId/hqdefault.jpg"
 
     private fun snoozeText(alarm: Alarm): String? = when (val left = alarm.snoozesLeft) {
