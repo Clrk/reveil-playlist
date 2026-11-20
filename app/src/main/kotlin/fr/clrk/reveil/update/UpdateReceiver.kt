@@ -6,12 +6,19 @@ import android.content.Intent
 import android.content.pm.PackageInstaller
 import androidx.core.content.IntentCompat
 
-/** Android answers the install here: it first needs the person to confirm, on its own screen. */
+/**
+ * Android answers the install here. When it needs the person to confirm, its screen opens, unless the install
+ * was started in the background: no screen pops up by itself, the list offers the update instead.
+ */
 class UpdateReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val status = intent.getIntExtra(PackageInstaller.EXTRA_STATUS, PackageInstaller.STATUS_FAILURE)
-        if (status != PackageInstaller.STATUS_PENDING_USER_ACTION) return
+        if (status != PackageInstaller.STATUS_PENDING_USER_ACTION || intent.getBooleanExtra(BACKGROUND, false)) return
         IntentCompat.getParcelableExtra(intent, Intent.EXTRA_INTENT, Intent::class.java)
             ?.let { context.startActivity(it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+    }
+
+    companion object {
+        const val BACKGROUND = "background"
     }
 }

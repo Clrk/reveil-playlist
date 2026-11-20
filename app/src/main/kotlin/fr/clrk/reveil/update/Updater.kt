@@ -4,6 +4,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageInstaller
+import android.os.Build
 import androidx.core.net.toUri
 import android.provider.Settings
 import fr.clrk.reveil.core.Releases
@@ -32,16 +33,21 @@ class Updater(private val context: Context) {
     }
 
     /**
-     * Blocking: downloads the APK, reporting [progress] from 0 to 1, then hands it to Android,
-     * which asks the person to confirm on its own screen. False when the download or the hand-over failed.
+     * Blocking: downloads the APK, reporting [progress] from 0 to 1, then hands it to Android. Android installs it
+     * without asking when the app installed itself last time (Android 12+); otherwise it asks the person on its own
+     * screen, except in the [background], where the list keeps offering the update instead.
+     * False when the download or the hand-over failed.
      */
-    fun install(update: Update, progress: (Float) -> Unit): Boolean = runCatching {
+    fun install(update: Update, background: Boolean = false, progress: (Float) -> Unit): Boolean = runCatching {
         val apk = download(update, progress)
         val installer = context.packageManager.packageInstaller
         val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            params.setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED)
+        }
         installer.openSession(installer.createSession(params)).use { session ->
             session.openWrite("update.apk", 0, apk.length()).use { out -> apk.inputStream().use { it.copyTo(out) } }
-            session.commit(done().intentSender)
+            session.commit(done(background).intentSender)
         }
         true
     }.getOrDefault(false)
@@ -69,8 +75,8 @@ class Updater(private val context: Context) {
         }
     }
 
-    private fun done(): PendingIntent = PendingIntent.getBroadcast(
-        context, 0, Intent(context, UpdateReceiver::class.java),
+    private fun done(background: Boolean): PendingIntent = PendingIntent.getBroadcast(
+        context, 0, Intent(context, UpdateReceiver::class.java).putExtra(UpdateReceiver.BACKGROUND, background),
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
     )
 

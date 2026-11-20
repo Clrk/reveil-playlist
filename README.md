@@ -76,7 +76,7 @@ La pièce est dans la nuit quand la musique commence, tout bas. Le volume monte,
   <img src="docs/mise-a-jour.png" width="200" alt="Bandeau de nouvelle version">
 </p>
 
-L'app interroge les releases de ce dépôt. La première fois, Android demande d'autoriser Réveil Playlist à installer ses mises à jour, ensuite c'est un bouton.
+L'app interroge les releases de ce dépôt. La première fois, Android demande d'autoriser Réveil Playlist à installer ses mises à jour. Ensuite, sur Android 12 et plus, elle s'installe toute seule en Wi-Fi, jamais pendant une sonnerie, un snooze ou dans l'heure qui précède un réveil. Le bandeau reste là pour installer à la main.
 
 ## Publier une version
 
