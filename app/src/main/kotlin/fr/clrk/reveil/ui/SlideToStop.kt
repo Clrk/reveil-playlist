@@ -1,6 +1,6 @@
 package fr.clrk.reveil.ui
 
-import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animate
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.Orientation
@@ -18,6 +18,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableFloatState
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
@@ -31,14 +35,14 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 private val TRACK_HEIGHT = 64.dp
 private val THUMB = 56.dp
-private const val STOP_AT = 0.85f
+private const val STOP_AT = 0.7f
+private const val FLING_PX_PER_S = 1500f
 
 /** Lets the tonearm settle on its rest before the screen closes. */
 private const val SETTLE_MS = 450L
@@ -49,7 +53,7 @@ private const val SETTLE_MS = 450L
  */
 @Composable
 fun SlideToStop(onProgress: (Float) -> Unit = {}, onStop: () -> Unit) {
-    val offset = remember { Animatable(0f) }
+    val position = remember { mutableFloatStateOf(0f) }
     BoxWithConstraints(
         Modifier.fillMaxWidth().height(TRACK_HEIGHT)
             .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f), CircleShape)
@@ -63,26 +67,28 @@ fun SlideToStop(onProgress: (Float) -> Unit = {}, onStop: () -> Unit) {
     ) {
         val max = with(LocalDensity.current) { (maxWidth - THUMB - 8.dp).toPx() }
         Text("arrêter  →", Modifier.align(Alignment.Center), style = MaterialTheme.typography.titleMedium)
-        LaunchedEffect(offset, max) { snapshotFlow { offset.value / max }.collect(onProgress) }
-        Thumb(offset, max, onStop)
+        LaunchedEffect(max) { snapshotFlow { position.floatValue / max }.collect(onProgress) }
+        Thumb(position, max, onStop)
     }
 }
 
+/**
+ * The thumb follows the finger synchronously, so the release decision reads where the finger really is.
+ * Past [STOP_AT], or flung to the right, it finishes on its own and stops; otherwise it slides back.
+ */
 @Composable
-private fun Thumb(offset: Animatable<Float, *>, max: Float, onStop: () -> Unit) {
+private fun Thumb(position: MutableFloatState, max: Float, onStop: () -> Unit) {
     val scope = rememberCoroutineScope()
     Box(
-        Modifier.padding(4.dp).offset { IntOffset(offset.value.roundToInt(), 0) }.size(THUMB)
+        Modifier.padding(4.dp).offset { IntOffset(position.floatValue.roundToInt(), 0) }.size(THUMB)
             .background(MaterialTheme.colorScheme.primary, CircleShape)
             .draggable(
                 orientation = Orientation.Horizontal,
-                state = rememberDraggableState { delta ->
-                    scope.launch(start = CoroutineStart.UNDISPATCHED) { offset.snapTo((offset.value + delta).coerceIn(0f, max)) }
-                },
-                onDragStopped = {
-                    val target = if (offset.value < max * STOP_AT) 0f else max
-                    if (target == max) scope.launch { stopAfterSettle(onStop) }
-                    offset.animateTo(target)
+                state = rememberDraggableState { delta -> position.floatValue = (position.floatValue + delta).coerceIn(0f, max) },
+                onDragStopped = { velocity ->
+                    val stop = position.floatValue >= max * STOP_AT || velocity > FLING_PX_PER_S
+                    if (stop) scope.launch { stopAfterSettle(onStop) }
+                    animate(position.floatValue, if (stop) max else 0f) { value, _ -> position.floatValue = value }
                 },
             ),
         contentAlignment = Alignment.Center,
@@ -90,8 +96,8 @@ private fun Thumb(offset: Animatable<Float, *>, max: Float, onStop: () -> Unit) 
 }
 
 /**
- * Stops once the tonearm has had time to land. Kept apart from the thumb animation, which a late drag
- * event can cancel: the stop itself must never be lost.
+ * Stops once the tonearm has had time to land. Kept apart from the thumb animation, which a new touch
+ * can cancel: the stop itself must never be lost.
  */
 private suspend fun stopAfterSettle(onStop: () -> Unit) {
     delay(SETTLE_MS)

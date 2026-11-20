@@ -34,7 +34,8 @@ import fr.clrk.reveil.R
 import fr.clrk.reveil.core.ArmPose
 import fr.clrk.reveil.core.CoverCrop
 import fr.clrk.reveil.core.LightStage
-import fr.clrk.reveil.core.RainDrift
+import fr.clrk.reveil.core.DropShadow
+import fr.clrk.reveil.core.RainRunners
 import fr.clrk.reveil.core.Sky
 
 /** Plate size of the Gemini pictures, and the x the screen is centred on (the turntable). */
@@ -51,8 +52,8 @@ private class Plates(
     val rain: Rain,
 )
 
-/** Drop shadow tiles (multiplied on the light) and where the light falls on the turntable. */
-private class Rain(val layers: List<ImageBitmap>, val patch: ImageBitmap)
+/** Still drop shadows (a tile multiplied on the light) and where the light falls on the turntable. */
+private class Rain(val drops: ImageBitmap, val patch: ImageBitmap)
 
 @Composable
 private fun plates() = Plates(
@@ -66,7 +67,7 @@ private fun plates() = Plates(
         Sky.FROST to ImageBitmap.imageResource(R.drawable.scene_gel),
     ),
     Rain(
-        listOf(ImageBitmap.imageResource(R.drawable.rain_drops_a), ImageBitmap.imageResource(R.drawable.rain_drops_b)),
+        ImageBitmap.imageResource(R.drawable.rain_drops_a),
         ImageBitmap.imageResource(R.drawable.rain_patch),
     ),
 )
@@ -106,21 +107,35 @@ private fun DrawScope.litRoom(plates: Plates, state: SceneState, sunny: Boolean)
     if (state.sky == Sky.RAIN) rainShadows(plates.rain, state.seconds)
 }
 
-/** Two layers of drop shadows sliding toward the window, kept to the sunlit patch, multiplied on the light. */
+/**
+ * Most drop shadows stay still; a few run toward the window in jerks, leaving droplets that fade.
+ * Everything is kept to the sunlit patch and multiplied on the light.
+ */
 private fun DrawScope.rainShadows(rain: Rain, seconds: Float) {
     val bounds = Rect(0f, 0f, PLATE_W, PLATE_H)
     drawContext.canvas.saveLayer(bounds, Paint().apply { blendMode = BlendMode.Multiply })
-    rain.layers.forEachIndexed { layer, tile ->
-        val drift = RainDrift.offset(layer, seconds)
-        val dx = drift.x % tile.width
-        val dy = drift.y % tile.height
-        val brush = ShaderBrush(ImageShader(tile, TileMode.Repeated, TileMode.Repeated))
-        val blend = if (layer == 0) BlendMode.SrcOver else BlendMode.Multiply
-        translate(dx, dy) { drawRect(brush, Offset(-dx, -dy), Size(PLATE_W, PLATE_H), blendMode = blend) }
-    }
+    drawRect(ShaderBrush(ImageShader(rain.drops, TileMode.Repeated, TileMode.Repeated)), size = Size(PLATE_W, PLATE_H))
+    RainRunners.at(seconds).forEach { dropShadow(it) }
     drawImage(rain.patch, dstSize = IntSize(PLATE_W.toInt(), PLATE_H.toInt()), blendMode = BlendMode.DstIn)
     drawContext.canvas.restore()
 }
+
+/** A soft round shadow, drawn longer along the run while the drop is moving. */
+private fun DrawScope.dropShadow(drop: DropShadow) {
+    val core = DROP_SHADE.copy(alpha = drop.opacity)
+    val brush = Brush.radialGradient(0f to core, 0.55f to core.copy(alpha = drop.opacity * 0.7f), 1f to Color.Transparent,
+        center = Offset.Zero, radius = drop.radius * 1.6f)
+    withTransform({
+        translate(drop.x, drop.y)
+        rotate(RUN_ANGLE, Offset.Zero)
+        scale(drop.stretch, 1f, Offset.Zero)
+    }) { drawCircle(brush, drop.radius * 1.6f, Offset.Zero) }
+}
+
+private val DROP_SHADE = Color(0xFF7A6152)
+
+/** Direction the shadows run in, toward the window (left and a little up), in degrees. */
+private const val RUN_ANGLE = 199.3f
 
 /** The lit picture fades in while the sun patch enters from the window side (only with sun). */
 private fun DrawScope.lit(light: LightStage, sweep: Boolean, content: DrawScope.() -> Unit) {

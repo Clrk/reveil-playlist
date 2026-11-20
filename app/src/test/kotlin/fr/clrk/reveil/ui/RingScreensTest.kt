@@ -90,7 +90,7 @@ class RingScreensTest {
     fun platinePochetteEtPluie() = scene(Sky.RAIN, 60f, Tonearm.pose(0f))
 
     @Test
-    fun platinePluieQuiAGlisse() = scene(Sky.RAIN, 70f, Tonearm.pose(0f))
+    fun platinePluieQuiAGlisse() = scene(Sky.RAIN, 75f, Tonearm.pose(0f))
 
     @Test
     fun platineBrasSouleve() = scene(Sky.CLEAR, 60f, Tonearm.pose(0.3f))
