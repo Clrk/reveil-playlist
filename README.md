@@ -15,7 +15,7 @@ Il faut Android 9 ou plus.
 2. Ouvrez-le sur le téléphone et autorisez l'installation depuis votre navigateur ou gestionnaire de fichiers.
 3. Au premier lancement, autorisez les notifications et l'affichage plein écran : c'est ce qui permet au réveil de sonner écran verrouillé.
 
-L'app n'est pas sur le Play Store (elle lit YouTube Music via [NewPipeExtractor](https://github.com/TeamNewPipe/NewPipeExtractor)). Elle **se met à jour toute seule** : quand une nouvelle version est publiée ici, un bandeau « Nouvelle version disponible · Installer » apparaît en haut de la liste.
+L'app n'est pas sur le Play Store (elle lit YouTube Music via [NewPipeExtractor](https://github.com/TeamNewPipe/NewPipeExtractor)). Elle **prévient quand une nouvelle version sort** : un bandeau « Installer » apparaît en haut de la liste.
 
 ## Comment ça marche
 
@@ -79,7 +79,7 @@ La pièce est dans la nuit quand la musique commence, tout bas. Le volume monte,
   <img src="docs/mise-a-jour.png" width="200" alt="Bandeau de nouvelle version">
 </p>
 
-L'app interroge les releases de ce dépôt. La première fois, Android demande d'autoriser Réveil Playlist à installer ses mises à jour. Ensuite elle se télécharge seule en Wi-Fi : sur Android 12 et plus elle s'installe sans rien demander ; avant Android 12, une notification propose de l'installer d'un geste. Jamais pendant une sonnerie, un snooze ou dans l'heure qui précède un réveil. Le bandeau reste là pour installer à la main.
+L'app interroge les releases de ce dépôt. Quand une nouvelle version sort, un bandeau « Installer » apparaît en haut de la liste et une notification discrète la signale. Un geste ouvre le téléchargement dans le navigateur, puis Android l'installe comme la première fois. L'app ne demande pas la permission d'installer des applications : Play Protect bloque les apps qui l'ont.
 
 ## Contribuer
 
@@ -131,7 +131,7 @@ L'extraction passe par [NewPipeExtractor](https://github.com/TeamNewPipe/NewPipe
 ## Limites connues
 
 - La couche Android n'a que des captures d'écran automatisées (Paparazzi) : le reste se vérifie sur un téléphone (voir la recette ci-dessous).
-- YouTube change régulièrement son site. Chaque matin, le workflow [`newpipe.yml`](.github/workflows/newpipe.yml) teste l'app contre le vrai YouTube et passe à la dernière version de NewPipeExtractor dès qu'elle sort : si les tests passent, la version est publiée et les téléphones se mettent à jour seuls ; sinon une issue est ouverte. Dans l'app, un message prévient quand YouTube ne répond plus comme prévu, et la sonnerie de secours garantit que le réveil sonne quand même.
+- YouTube change régulièrement son site. Chaque matin, le workflow [`newpipe.yml`](.github/workflows/newpipe.yml) teste l'app contre le vrai YouTube et passe à la dernière version de NewPipeExtractor dès qu'elle sort : si les tests passent, la version est publiée et les téléphones la proposent ; sinon une issue est ouverte. Dans l'app, un message prévient quand YouTube ne répond plus comme prévu, et la sonnerie de secours garantit que le réveil sonne quand même.
 - Les alarmes ne sonnent pas entre un redémarrage et le premier déverrouillage du téléphone.
 
 ## Recette sur téléphone
