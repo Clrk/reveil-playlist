@@ -14,8 +14,15 @@ Fonctionnalité: Lumière du matin sur l'écran de réveil
     Soit une montée du volume sur "60" secondes
     Quand la sonnerie dure depuis "30" secondes
     Alors le premier rayon est à "100" %
-    Et la tache de soleil est à "54" %
+    Et la tache de soleil est à "30" %
+    Et la lueur rose est à "100" %
     Et la lumière dorée est à "0" %
+
+  Scénario: La lueur rose ne s'éteint qu'une fois le soleil presque entré, sans creux de lumière
+    Soit une montée du volume sur "60" secondes
+    Quand la sonnerie dure depuis "45" secondes
+    Alors la lueur rose est à "68" %
+    Et la tache de soleil est à "91" %
 
   Scénario: À la fin de la montée c'est le plein matin
     Soit une montée du volume sur "60" secondes
@@ -23,6 +30,7 @@ Fonctionnalité: Lumière du matin sur l'écran de réveil
     Alors la tache de soleil est à "100" %
     Et la tache a fini d'entrer dans la pièce
     Et la lumière dorée est à "75" %
+    Et la lueur rose est à "0" %
     Et l'heure est affichée à "100" % de luminosité
 
   Scénario: Sans montée du volume, c'est le plein matin tout de suite

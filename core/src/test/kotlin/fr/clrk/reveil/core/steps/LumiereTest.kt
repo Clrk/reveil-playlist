@@ -24,6 +24,7 @@ class LumiereTest {
         step("la sonnerie dure depuis \"(\\d+)\" secondes") { (seconds) -> elapsed = Duration.ofSeconds(seconds.toLong()) }
         step("le premier rayon est à \"(\\d+)\" %") { (p) -> assertEquals(p.toInt(), percent(light.firstRay)) }
         step("la tache de soleil est à \"(\\d+)\" %") { (p) -> assertEquals(p.toInt(), percent(light.sunPatch)) }
+        step("la lueur rose est à \"(\\d+)\" %") { (p) -> assertEquals(p.toInt(), percent(light.glow)) }
         step("la lumière dorée est à \"(\\d+)\" %") { (p) -> assertEquals(p.toInt(), percent(light.gold)) }
         step("la tache a fini d'entrer dans la pièce") { assertTrue(light.sweep >= 1f) }
         step("l'heure est affichée à \"(\\d+)\" % de luminosité") { (p) -> assertEquals(p.toInt(), percent(light.text)) }

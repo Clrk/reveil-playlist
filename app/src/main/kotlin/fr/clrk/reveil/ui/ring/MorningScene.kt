@@ -98,7 +98,7 @@ private fun DrawScope.room(plates: Plates, state: SceneState) {
     val sunny = state.sky == Sky.CLEAR
     plate(plates.night)
     label(state.cover, state.spin, NIGHT_LABEL)
-    if (sunny) plate(plates.pink, light.firstRay * PINK_GLOW * (1 - light.sunPatch))
+    if (sunny) plate(plates.pink, light.glow * PINK_GLOW)
     if (light.sunPatch > 0f) lit(light, sunny) { litRoom(plates, state, sunny) }
     tonearm(state.arm, light.sunPatch)
 }
