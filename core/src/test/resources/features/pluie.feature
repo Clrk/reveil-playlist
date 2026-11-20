@@ -14,6 +14,10 @@ Fonctionnalité: Quelques gouttes glissent sur la vitre et leur ombre traverse l
     Alors elle est allée vers la gauche
     Et elle est allée vers le haut, moins que vers la gauche
 
+  Scénario: L'ombre de la goutte s'étire dans le sens où elle glisse
+    Quand on regarde une goutte à "0" s puis à "6" s
+    Alors son ombre est orientée dans le sens de sa course
+
   Scénario: La goutte glisse par à-coups
     Quand on suit une goutte pendant qu'elle glisse
     Alors elle ralentit presque jusqu'à s'arrêter puis repart

@@ -40,6 +40,8 @@ import fr.clrk.reveil.core.Sky
 import fr.clrk.reveil.core.Tonearm
 import fr.clrk.reveil.ui.ring.Label
 import fr.clrk.reveil.ui.ring.MorningScene
+import fr.clrk.reveil.ui.ring.PLATE_H
+import fr.clrk.reveil.ui.ring.PLATE_W
 import fr.clrk.reveil.ui.ring.SceneState
 import fr.clrk.reveil.ui.ring.WeatherIcon
 import java.time.DayOfWeek
@@ -67,15 +69,14 @@ fun <T> Turn(target: T, forward: (from: T, to: T) -> Boolean = { _, _ -> true },
         target, label = "turn",
         transitionSpec = {
             val sign = if (forward(initialState, targetState)) 1 else -1
-            val glide = tween<IntOffset>(OPEN_MS, easing = Calm.EASE)
-            val enter = fadeIn(tween(OPEN_MS, CLOSE_MS / 2, Calm.EASE)) + slideInHorizontally(glide) { sign * it / SHIFT }
+            val glide = tween<IntOffset>(Calm.OPEN_MS, easing = Calm.EASE)
+            val enter = fadeIn(tween(Calm.OPEN_MS, CLOSE_MS / 2, Calm.EASE)) + slideInHorizontally(glide) { sign * it / SHIFT }
             enter togetherWith
                 (fadeOut(tween(CLOSE_MS, easing = Calm.AWAY)) + slideOutHorizontally(tween(CLOSE_MS)) { -sign * it / SHIFT })
         },
     ) { content(it) }
 }
 
-private const val OPEN_MS = 320
 private const val CLOSE_MS = 180
 private const val SHIFT = 8
 
@@ -105,8 +106,6 @@ fun WaitingTurntable(modifier: Modifier = Modifier) {
 /** Rows of the plate pictures between which the turntable sits. */
 private const val DECK_TOP = 440f
 private const val DECK_BOTTOM = 860f
-private const val PLATE_H = 1024f
-private const val PLATE_W = 572f
 
 private val DARK = LightStage(0f, 0f, 0f, 0f, 0f)
 @Suppress("MagicNumber") // stops of the fade

@@ -1,16 +1,18 @@
 package fr.clrk.reveil.ui
 
+import kotlin.math.roundToInt
 import android.os.SystemClock
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -93,7 +95,7 @@ private fun Crate(ui: ListUi, events: ListEvents, modifier: Modifier) {
         verticalArrangement = Arrangement.spacedBy(14.dp),
         modifier = modifier,
     ) {
-        item { Header(ui, events, Modifier.reveal(0)) }
+        item { Header(ui, events, Modifier.reveal(0, opened)) }
         itemsIndexed(ui.alarms, key = { _, alarm -> alarm.id }) { i, alarm ->
             Box(Modifier.animateItem().reveal(row(i), opened)) {
                 val notes = CardNotes(ui.offline[alarm.id], ui.skipped[alarm.id], ui.preparing[alarm.id])
@@ -108,19 +110,28 @@ private fun Crate(ui: ListUi, events: ListEvents, modifier: Modifier) {
 private fun Header(ui: ListUi, events: ListEvents, modifier: Modifier) {
     Column(modifier.padding(top = 14.dp, bottom = 4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Réveils", Modifier.weight(1f), fontSize = 26.sp, fontWeight = FontWeight.Light)
-            Text("${ui.next.title} · ${ui.next.detail}", color = Night.CAPTION, fontSize = 13.sp, maxLines = 1)
+            Text("Réveils", fontSize = 26.sp, fontWeight = FontWeight.Light)
+            Text(
+                "${ui.next.title} · ${ui.next.detail}", Modifier.weight(1f).padding(start = 12.dp), color = Night.CAPTION,
+                fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End,
+            )
         }
-        ui.warnings.forEach { (text, fix) -> Warning(text, fix) }
-        ui.update?.let { NewVersion(it, events::update) }
+        Notices(ui, events)
     }
+}
+
+/** What needs the person's attention, one line each: missing permissions, then a newer version. */
+@Composable
+private fun Notices(ui: ListUi, events: ListEvents) {
+    ui.warnings.forEach { (text, fix) -> Warning(text, fix) }
+    ui.update?.let { NewVersion(it, events::update) }
 }
 
 /** One line, like the warnings: a newer version, and one tap to install it. */
 @Composable
 private fun NewVersion(note: UpdateNote, install: () -> Unit) {
     Row(Modifier.fillMaxWidth().padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-        val text = note.progress?.let { "Téléchargement de la version ${note.version}… ${(it * PERCENT).toInt()} %" }
+        val text = note.progress?.let { "Téléchargement de la version ${note.version}… ${(it * PERCENT).roundToInt()} %" }
         Text(text ?: "Nouvelle version ${note.version} disponible", Modifier.weight(1f), color = Night.CAPTION, fontSize = 13.sp)
         if (note.progress == null) TextButton(onClick = install) { Text("Installer", color = Night.EMBER) }
     }
@@ -129,9 +140,9 @@ private fun NewVersion(note: UpdateNote, install: () -> Unit) {
 @Composable
 private fun SleeveRow(alarm: Alarm, notes: CardNotes, events: ListEvents) {
     val flight = LocalFlight.current
-    val open = { a: Alarm -> openFrom(flight, a, events) }
     Row(
-        Modifier.fillMaxWidth().background(Night.CARD, RoundedCornerShape(14.dp)).clickable { open(alarm) }.padding(12.dp),
+        Modifier.fillMaxWidth().background(Night.CARD, RoundedCornerShape(14.dp))
+            .clickable { openFrom(flight, alarm, events) }.padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         val alpha by animateFloatAsState(if (alarm.enabled) 1f else OFF_ALPHA, tween(FADE_MS, easing = Calm.EASE), label = "on")
@@ -176,12 +187,10 @@ private val SWITCH
 /** No alarm yet: the turntable waits, with one clear way to set the first alarm. */
 @Composable
 private fun EmptyCrate(ui: ListUi, events: ListEvents, modifier: Modifier) {
-    Column(modifier.fillMaxSize()) {
+    Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()), Arrangement.SpaceBetween) {
         WaitingTurntable(Modifier.fillMaxWidth().height(340.dp).reveal(0))
-        Spacer(Modifier.weight(1f))
         Column(Modifier.padding(horizontal = 30.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            ui.warnings.forEach { (text, fix) -> Warning(text, fix) }
-            ui.update?.let { NewVersion(it, events::update) }
+            Notices(ui, events)
             Text("La platine attend.", Modifier.reveal(1), fontSize = 30.sp, fontWeight = FontWeight.ExtraLight)
             Text(
                 "Aucun réveil prévu. Les chansons sont gardées sur le téléphone, le réveil sonne même hors ligne.",

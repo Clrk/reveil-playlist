@@ -24,11 +24,8 @@ import androidx.compose.runtime.setValue
 import fr.clrk.reveil.alarm.RingService
 import fr.clrk.reveil.app
 import fr.clrk.reveil.core.Alarm
-import fr.clrk.reveil.core.PlaylistId
 import fr.clrk.reveil.core.WakeInfo
-import fr.clrk.reveil.music.TrackCache
 import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import fr.clrk.reveil.music.PrefetchScheduler
@@ -50,7 +47,6 @@ class MainActivity : ComponentActivity() {
     private var announcement by mutableStateOf<String?>(null)
     private var download by mutableStateOf<WakeInfo.Download?>(null)
     private var fetching by mutableStateOf<String?>(null)
-    private var purge: String? = null
     private var undo by mutableStateOf<(() -> Unit)?>(null)
     private var resumed by mutableIntStateOf(0)
     private val prefs by lazy { getSharedPreferences("ui", MODE_PRIVATE) }
@@ -103,24 +99,24 @@ class MainActivity : ComponentActivity() {
     private val actions = object : EditorActions {
         override fun save(alarm: Alarm) {
             app.alarms.update(alarm)
-            editing = null
+            closeEditor()
             changed()
             announce(alarm)
             alarm.playlistId?.takeIf { music.cached(it) == 0 }?.let(::prefetch)
         }
-        override fun delete(alarm: Alarm) { editing = null; deleteWithUndo(alarm) }
+        override fun delete(alarm: Alarm) { closeEditor(); deleteWithUndo(alarm) }
         override fun test(alarm: Alarm) { app.alarms.update(alarm); RingService.start(this@MainActivity, alarm.id) }
         override fun prefetch(playlist: String) {
             fetching = playlist
             PrefetchScheduler.now(this@MainActivity, playlist)
         }
-        override fun skip(alarm: Alarm) { app.alarms.skipNext(alarm.id); editing = null; changed() }
-        override fun close() { editing = null; sharedLink = "" }
+        override fun skip(alarm: Alarm) { app.alarms.skipNext(alarm.id); closeEditor(); changed() }
+        override fun close() = closeEditor()
     }
 
     private val listEvents = object : ListEvents {
         override fun add() { creating = Alarm.at(LocalTime.of(DEFAULT_HOUR, 0)) }
-        override fun weather() = chooseCity()
+        override fun weather() { choosingCity = true }
         override fun update() = upgrade.install()
         override fun open(alarm: Alarm) { editing = alarm }
         override fun unskip(alarm: Alarm) { app.alarms.unskip(alarm.id); changed() }
@@ -141,7 +137,8 @@ class MainActivity : ComponentActivity() {
         CompositionLocalProvider(LocalFlight provides remember { Flight() }) {
             Box(Modifier.fillMaxSize()) {
                 Crossfade(onboarded, label = "accueil") { done ->
-                    if (done) List(city, next, skipped) else OnboardingScreen(permissions.steps(), city, ::chooseCity, ::finishOnboarding)
+                    if (done) List(city, next, skipped)
+                    else OnboardingScreen(permissions.steps(), city, listEvents::weather, ::finishOnboarding)
                 }
                 Editors()
                 if (choosingCity) CityPicker(cities) { choosingCity = false; refresh() }
@@ -161,8 +158,7 @@ class MainActivity : ComponentActivity() {
             delay(ANNOUNCE_MS)
             announcement = null
             undo = null
-            purge?.let { playlist -> lifecycleScope.launch(Dispatchers.IO) { music.free(playlist) } }
-            purge = null
+            music.freeUnused(app.alarms, lifecycleScope)
         }
     }
 
@@ -184,18 +180,21 @@ class MainActivity : ComponentActivity() {
         override fun choose(place: Place) = weather.choose(place)
     }
 
-    private fun chooseCity() { choosingCity = true }
-
     private fun finishOnboarding() {
         prefs.edit { putBoolean(ONBOARDED, true) }
         onboarded = true
     }
 
     private fun deleteWithUndo(alarm: Alarm) {
-        purge = app.alarms.delete(alarm.id)
+        music.leftBehind(app.alarms.delete(alarm.id))
         changed()
         announcement = "Réveil supprimé"
-        undo = { app.alarms.update(alarm); purge = null; changed(); announcement = null; undo = null }
+        undo = { app.alarms.update(alarm); changed(); announcement = null; undo = null }
+    }
+
+    private fun closeEditor() {
+        editing = null
+        sharedLink = ""
     }
 
     private fun announce(alarm: Alarm) { announcement = WakeInfo.announce(alarm, ZonedDateTime.now()) }

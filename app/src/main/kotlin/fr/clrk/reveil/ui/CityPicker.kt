@@ -1,6 +1,6 @@
 package fr.clrk.reveil.ui
 
-import androidx.compose.foundation.background
+import android.os.SystemClock
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -82,9 +82,10 @@ private fun CityContent(ui: CityUi, onQuery: (String) -> Unit, onPick: (Place) -
             ui.query, onQuery, Modifier.fillMaxWidth().padding(top = 18.dp).reveal(order = 3),
             singleLine = true, placeholder = { Text("Votre ville") },
         )
+        val found = remember(ui.found) { SystemClock.uptimeMillis() }
         LazyColumn(Modifier.padding(top = 6.dp)) {
-            itemsIndexed(ui.found, key = { _, place -> "${place.latitude},${place.longitude}" }) { i, place ->
-                CityRow(place, place == ui.current, Modifier.reveal(row(i, 0))) { onPick(place) }
+            itemsIndexed(ui.found, key = { i, place -> "$i ${place.latitude},${place.longitude}" }) { i, place ->
+                CityRow(place, place == ui.current, Modifier.reveal(row(i, 0), found)) { onPick(place) }
             }
         }
     }

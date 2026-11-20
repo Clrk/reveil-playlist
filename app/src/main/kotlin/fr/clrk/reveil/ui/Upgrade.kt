@@ -18,11 +18,24 @@ class Upgrade(private val updater: Updater, private val scope: CoroutineScope) {
 
     fun check() { scope.launch(Dispatchers.IO) { found = updater.check() } }
 
-    /** Android first asks once to allow the app to install its updates; then it downloads and installs. */
+    /**
+     * Android first asks once to allow the app to install its updates; then it downloads and installs.
+     * Once Android has the file (or the download failed), the line offers "Installer" again:
+     * the person may cancel Android's confirmation and retry.
+     */
     fun install() {
         val update = found ?: return
         if (!updater.allowed()) return updater.askPermission()
+        if (downloading != null) return
         downloading = 0f
-        scope.launch(Dispatchers.IO) { if (!updater.install(update) { downloading = it }) downloading = null }
+        scope.launch(Dispatchers.IO) {
+            updater.install(update) { downloading = (it * PERCENT).toInt() / PERCENT }
+            downloading = null
+        }
+    }
+
+    private companion object {
+        /** Progress moves one percent at a time, so the list is not redrawn for every packet. */
+        const val PERCENT = 100f
     }
 }

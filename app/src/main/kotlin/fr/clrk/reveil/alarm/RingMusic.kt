@@ -60,8 +60,6 @@ object RingState {
      * [startedAt] and [rampSeconds] drive the morning light; [weather] is today's forecast when known.
      */
     data class Ui(
-        val label: String,
-        val nowPlaying: String,
         val snooze: String? = null,
         val cover: String? = null,
         val startedAt: Long = System.currentTimeMillis(),
@@ -75,7 +73,7 @@ object RingState {
 
     fun show(alarm: Alarm?, weather: DayWeather?) {
         val snooze = alarm?.let(::snoozeText) ?: Alarm.DEFAULT_SNOOZE_MINUTES.let { "$it min" }
-        ui.value = Ui(alarm?.label.orEmpty(), "", snooze, rampSeconds = alarm?.rampSeconds ?: Alarm.DEFAULT_RAMP_SECONDS, weather = weather)
+        ui.value = Ui(snooze, rampSeconds = alarm?.rampSeconds ?: Alarm.DEFAULT_RAMP_SECONDS, weather = weather)
     }
 
     fun weather(day: DayWeather?) {
@@ -84,21 +82,20 @@ object RingState {
 
     fun playing(source: WakeSource) {
         val track = (source as? WakeSource.Music)?.track
-        ui.value = ui.value?.copy(nowPlaying = track?.title ?: "Sonnerie de secours", cover = track?.let { cover(it.id) })
+        ui.value = ui.value?.copy(cover = track?.let { cover(it.id) })
     }
 
     /** The track is over (or failed): the record starts changing, keeping the old cover until it stops. */
     fun ended() {
         val current = ui.value ?: return
-        if (current.change != null && current.change.startedMs == null) return
-        ui.value = current.copy(change = RecordChange(sinceStart(current)), previousCover = current.cover)
+        val change = RecordChange.ended(current.change, sinceStart(current))
+        if (change != current.change) ui.value = current.copy(change = change, previousCover = current.cover)
     }
 
     /** The next track really plays: the arm may land. */
     fun started() {
         val current = ui.value ?: return
-        val change = current.change?.takeIf { it.startedMs == null } ?: return
-        ui.value = current.copy(change = change.copy(startedMs = sinceStart(current)))
+        ui.value = current.copy(change = current.change?.started(sinceStart(current)))
     }
 
     private fun sinceStart(current: Ui) = System.currentTimeMillis() - current.startedAt

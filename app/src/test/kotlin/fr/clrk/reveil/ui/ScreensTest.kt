@@ -60,6 +60,12 @@ class ScreensTest {
     }
 
     @Test
+    fun listeNomLong() = shot {
+        val long = WakeInfo.NextCard("lun. 07:00", "dans 8 h 12 min · Aller au travail en passant par la boulangerie")
+        AlarmListScreen(ListUi(listOf(boulot, weekend), long, offline = ready, weather = matin), noListEvents)
+    }
+
+    @Test
     fun listeMiseAJour() = shot {
         AlarmListScreen(ListUi(listOf(boulot, weekend), next, offline = ready, update = UpdateNote("0.9.8")), noListEvents)
     }

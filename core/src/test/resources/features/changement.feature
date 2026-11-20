@@ -46,3 +46,19 @@ Fonctionnalité: Changer de disque entre deux morceaux
     Soit le morceau suivant démarre à "63000" ms
     Quand on regarde à "66000" ms
     Alors le disque tourne à "33" tours par minute
+
+  Scénario: Un morceau qui échoue pendant le changement ne relance pas le geste
+    Quand un autre morceau se termine à "62000" ms
+    Alors le changement a commencé à "60000" ms
+
+  Scénario: Une fois le disque reparti, la fin du morceau lance un nouveau changement
+    Soit le morceau suivant démarre à "63000" ms
+    Quand un autre morceau se termine à "200000" ms
+    Alors le changement a commencé à "200000" ms
+    Et le bras attend le morceau suivant
+
+  Scénario: Le bras ne se pose qu'une fois par changement
+    Soit le morceau suivant démarre à "63000" ms
+    Et le morceau suivant démarre à "70000" ms
+    Quand on regarde à "63600" ms
+    Alors le bras est posé

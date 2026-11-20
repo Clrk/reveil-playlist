@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.TestFactory
 import kotlin.math.abs
+import kotlin.math.atan2
 import kotlin.math.hypot
 
 class PluieWorld {
@@ -22,6 +23,11 @@ class PluieWorld {
         val dx = after!!.x - before!!.x
         val dy = after!!.y - before!!.y
         assertTrue(dy < 0f && abs(dy) < abs(dx), "dx=$dx dy=$dy")
+    }
+
+    fun assertStretchedAlongItsRun() {
+        val course = Math.toDegrees(atan2((after!!.y - before!!.y).toDouble(), (after!!.x - before!!.x).toDouble()))
+        assertEquals((course + 360) % 360, RainRunner.RUN_DEGREES.toDouble(), 3.0)
     }
 
     fun follow() {
@@ -51,6 +57,7 @@ class PluieTest {
         step("elle n'a pas bougé") { assertEquals(before, after) }
         step("elle est allée vers la gauche") { assertTrue(after!!.x < before!!.x, "$before -> $after") }
         step("elle est allée vers le haut, moins que vers la gauche") { assertRisesLessThanItGoesLeft() }
+        step("son ombre est orientée dans le sens de sa course") { assertStretchedAlongItsRun() }
         step("on suit une goutte pendant qu'elle glisse") { follow() }
         step("elle ralentit presque jusqu'à s'arrêter puis repart") {
             val slowest = speeds.indexOf(speeds.min())

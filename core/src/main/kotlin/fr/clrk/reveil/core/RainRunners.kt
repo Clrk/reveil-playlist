@@ -1,6 +1,7 @@
 package fr.clrk.reveil.core
 
 import kotlin.math.PI
+import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.sin
@@ -47,7 +48,7 @@ class RainRunner(private val path: Path, rhythm: Rhythm) {
      */
     fun trail(seconds: Float): List<DropShadow> {
         val t = local(seconds)
-        if (t < wait) return emptyList()
+        if (t < wait || t >= wait + run + FADE) return emptyList()
         val travelled = distance(((t - wait) / run).coerceIn(0f, 1f))
         val streak = behind(t, travelled, STREAK_SPACING) { _ -> STREAK_RADIUS to STREAK_OPACITY }
         return streak + behind(t, travelled, SPACING) { i -> dropletRadius(i) to TRAIL_OPACITY }
@@ -81,29 +82,32 @@ class RainRunner(private val path: Path, rhythm: Rhythm) {
         return DropShadow(path.x + DIR_X * d - DIR_Y * wobble, path.y + DIR_Y * d + DIR_X * wobble, radius, opacity, stretch)
     }
 
-    private companion object {
-        val NORM = hypot(1f, 0.35f)
-        val DIR_X = -1f / NORM
-        val DIR_Y = -0.35f / NORM
-        const val APPEAR = 0.4f
-        const val VANISH = 0.6f
-        const val FADE = 5f
-        const val SPACING = 6f
-        const val STREAK_SPACING = 1.5f
-        const val STREAK_RADIUS = 1.1f
-        const val STREAK_OPACITY = 0.18f
-        const val BEHIND = 4f
-        const val HEAD_RADIUS = 4f
-        const val HEAD_OPACITY = 0.95f
-        const val TRAIL_OPACITY = 0.75f
-        const val DROPLET = 1.3f
-        const val DROPLET_SPREAD = 0.7f
-        const val STRETCH = 0.7f
-        const val WOBBLE = 2.5f
-        const val WOBBLE_WAVE = 13f
-        const val SEARCH_STEPS = 18
-        const val SIZE_STEP = 3
-        const val SIZES = 5
+    companion object {
+        private val NORM = hypot(1f, 0.35f)
+        private val DIR_X = -1f / NORM
+        private val DIR_Y = -0.35f / NORM
+
+        /** Direction of the run on the picture, in degrees clockwise from the right: shadows stretch along it. */
+        val RUN_DEGREES = (Math.toDegrees(atan2(DIR_Y, DIR_X).toDouble()).toFloat() + Turntable.TURN) % Turntable.TURN
+        private const val APPEAR = 0.4f
+        private const val VANISH = 0.6f
+        private const val FADE = 5f
+        private const val SPACING = 6f
+        private const val STREAK_SPACING = 1.5f
+        private const val STREAK_RADIUS = 1.1f
+        private const val STREAK_OPACITY = 0.18f
+        private const val BEHIND = 4f
+        private const val HEAD_RADIUS = 4f
+        private const val HEAD_OPACITY = 0.95f
+        private const val TRAIL_OPACITY = 0.75f
+        private const val DROPLET = 1.3f
+        private const val DROPLET_SPREAD = 0.7f
+        private const val STRETCH = 0.7f
+        private const val WOBBLE = 2.5f
+        private const val WOBBLE_WAVE = 13f
+        private const val SEARCH_STEPS = 18
+        private const val SIZE_STEP = 3
+        private const val SIZES = 5
     }
 }
 

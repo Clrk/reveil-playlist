@@ -13,19 +13,19 @@ data class LightStage(val firstRay: Float, val sunPatch: Float, val gold: Float,
 /** The morning follows the volume ramp: night when the alarm starts, full morning when the music is at full volume. */
 class MorningLight(private val rampSeconds: Int) {
     fun at(elapsed: Duration): LightStage {
-        val t = if (rampSeconds <= 0) 1f else (elapsed.toMillis() / (rampSeconds * MILLIS)).coerceIn(0f, 1f)
+        val t = rampProgress(rampSeconds, elapsed)
+        val ray = smoothStep(RAY_START, RAY_END, t)
         return LightStage(
-            firstRay = smoothStep(RAY_START, RAY_END, t),
+            firstRay = ray,
             sunPatch = smoothStep(PATCH_START, PATCH_END, t),
             gold = smoothStep(GOLD_START, 1f, t) * GOLD_MAX,
             sweep = SWEEP_FROM + SWEEP_SPAN * smoothStep(PATCH_START, SWEEP_END, t),
             text = TEXT_MIN + (1 - TEXT_MIN) * t,
-            glow = smoothStep(RAY_START, RAY_END, t) * (1 - smoothStep(GLOW_FADE_START, 1f, t)),
+            glow = ray * (1 - smoothStep(GLOW_FADE_START, 1f, t)),
         )
     }
 
     private companion object {
-        const val MILLIS = 1000f
         const val RAY_START = 0.04f
         const val RAY_END = 0.32f
         const val PATCH_START = 0.3f

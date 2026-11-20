@@ -12,13 +12,10 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.platform.LocalContext
 import fr.clrk.reveil.music.YtMusicAccount
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -29,7 +26,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -51,12 +47,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
 import fr.clrk.reveil.core.PlaylistChoice
 import fr.clrk.reveil.core.PlaylistFinder
 import fr.clrk.reveil.core.SearchResult
@@ -209,10 +202,17 @@ private fun Results(result: SearchResult, onPick: (PlaylistChoice) -> Unit) {
     when (result) {
         SearchResult.Idle -> Hint("Cherchez une playlist YouTube Music par nom d'artiste, de genre ou d'ambiance.")
         is SearchResult.Message -> Hint(result.text)
-        is SearchResult.Found -> LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            itemsIndexed(result.playlists, key = { _, choice -> choice.id.value }) { i, choice ->
-                PlaylistRow(choice, Modifier.reveal(row(i, 0)).clickable { onPick(choice) })
-            }
+        is SearchResult.Found -> Found(result.playlists, onPick)
+    }
+}
+
+/** Results cascade in once; rows scrolled into view afterwards are simply there. */
+@Composable
+private fun Found(playlists: List<PlaylistChoice>, onPick: (PlaylistChoice) -> Unit) {
+    val found = remember(playlists) { SystemClock.uptimeMillis() }
+    LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        itemsIndexed(playlists, key = { _, choice -> choice.id.value }) { i, choice ->
+            PlaylistRow(choice, Modifier.reveal(row(i, 0), found).clickable { onPick(choice) })
         }
     }
 }

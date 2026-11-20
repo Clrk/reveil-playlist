@@ -61,7 +61,10 @@ fun NewAlarmFlow(initial: Alarm, onSave: (Alarm) -> Unit, onMore: (Alarm) -> Uni
     val flight = LocalFlight.current
     val events = object : FlowEvents {
         override fun change(alarm: Alarm) { current = alarm }
-        override fun go(step: Step) { if (step == Step.PLAYLIST) picking = true else screen = step }
+        override fun go(step: Step) {
+            picking = step == Step.PLAYLIST
+            screen = if (picking) Step.DAYS else step
+        }
         override fun more(alarm: Alarm) {
             flight.takeOff(DRAFT, EDITOR, alarm.playlistCover)
             leave.then { onMore(alarm) }

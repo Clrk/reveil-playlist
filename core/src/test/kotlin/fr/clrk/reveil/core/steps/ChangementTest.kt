@@ -16,8 +16,11 @@ class ChangementWorld {
 class ChangementTest {
     @TestFactory
     fun scenarios() = FeatureRunner.run("features/changement.feature", ::ChangementWorld) {
-        step("un morceau qui se termine à \"(\\d+)\" ms") { (e) -> change = RecordChange(endedMs = e.toLong()) }
-        step("le morceau suivant démarre à \"(\\d+)\" ms") { (s) -> change = change.copy(startedMs = s.toLong()) }
+        step("un morceau qui se termine à \"(\\d+)\" ms") { (e) -> change = RecordChange.ended(null, e.toLong()) }
+        step("le morceau suivant démarre à \"(\\d+)\" ms") { (s) -> change = change.started(s.toLong()) }
+        step("un autre morceau se termine à \"(\\d+)\" ms") { (e) -> change = RecordChange.ended(change, e.toLong()) }
+        step("le changement a commencé à \"(\\d+)\" ms") { (e) -> assertEquals(e.toLong(), change.endedMs) }
+        step("le bras attend le morceau suivant") { assertTrue(change.pending) }
         step("on regarde à \"(\\d+)\" ms") { (t) -> ms = t.toLong() }
         step("le bras est soulevé") { assertTrue(lift > 0.5f, "lift=$lift") }
         step("le bras est posé") { assertTrue(lift < 0.05f, "lift=$lift") }

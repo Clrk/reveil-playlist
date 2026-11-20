@@ -80,7 +80,7 @@ private fun Disc(modifier: Modifier) {
         val r = size.minDimension / 2
         drawCircle(Color(0xFF1B1B1B), r)
         for (i in 0 until GROOVES) drawCircle(Color(0xFF3C3C3C), r * (0.42f + 0.56f * i / GROOVES), style = Stroke(0.6f))
-        drawCircle(Color(0x47E6D6C4), r, style = Stroke(1.5f))
+        drawCircle(Night.DIM, r, style = Stroke(1.5f))
         drawCircle(Night.EMBER, r * 0.3f)
         drawCircle(Color(0xFF151515), r * 0.03f)
     }

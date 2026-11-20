@@ -45,7 +45,7 @@ private fun rememberSpin(speed: Float): Float {
         var last = withFrameMillis { it }
         while (true) {
             withFrameMillis { now ->
-                angle = (angle + Turntable.DEGREES_PER_MS * current * (now - last)) % FULL_TURN
+                angle = (angle + Turntable.DEGREES_PER_MS * current * (now - last)) % Turntable.TURN
                 last = now
             }
         }
@@ -53,4 +53,3 @@ private fun rememberSpin(speed: Float): Float {
     return angle
 }
 
-private const val FULL_TURN = 360f

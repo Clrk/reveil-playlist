@@ -1,6 +1,7 @@
 package fr.clrk.reveil.core.steps
 
 import fr.clrk.reveil.core.TriggerKey
+import fr.clrk.reveil.core.unused
 import fr.clrk.reveil.core.bdd.FeatureRunner
 import fr.clrk.reveil.core.bdd.StepRegistry
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -148,6 +149,9 @@ private fun StepRegistry<AlarmWorld>.snoozeAssertions() {
     step("la pochette de $ALARM est \"([^\"]+)\"") { (label, cover) -> assertEquals(cover, alarm(label).playlistCover) }
     step("les chansons de la playlist \"([^\"]+)\" sont effacées du téléphone") { (playlist) -> assertEquals(playlist, freed) }
     step("aucune chanson n'est effacée du téléphone") { assertNull(freed) }
+    step("parmi les playlists \"([^\"]+)\", seules les chansons de \"([^\"]+)\" peuvent être effacées") { (all, free) ->
+        assertEquals(listOf(free), service.unused(all.split(", ")))
+    }
     step("$ALARM n'a pas de snooze en attente") { (label) ->
         assertNull(phone.planned[TriggerKey(id(label), TriggerKey.Kind.SNOOZE)])
     }

@@ -109,9 +109,10 @@ class Leave {
     internal var instant = false
     internal var after: () -> Unit = {}
 
-    /** Fades the screen out, then runs [action]. */
+    /** Fades the screen out, then runs [action]. Once it is leaving, a second tap changes nothing. */
     fun then(action: () -> Unit) {
         if (instant) return action()
+        if (!shown.targetState) return
         after = action
         shown.targetState = false
     }

@@ -20,8 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableFloatState
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
@@ -35,6 +34,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -79,16 +79,20 @@ fun SlideToStop(onProgress: (Float) -> Unit = {}, onStop: () -> Unit) {
 @Composable
 private fun Thumb(position: MutableFloatState, max: Float, onStop: () -> Unit) {
     val scope = rememberCoroutineScope()
+    val settling = remember { mutableStateOf<Job?>(null) }
     Box(
         Modifier.padding(4.dp).offset { IntOffset(position.floatValue.roundToInt(), 0) }.size(THUMB)
             .background(MaterialTheme.colorScheme.primary, CircleShape)
             .draggable(
                 orientation = Orientation.Horizontal,
                 state = rememberDraggableState { delta -> position.floatValue = (position.floatValue + delta).coerceIn(0f, max) },
+                onDragStarted = { settling.value?.cancel() },
                 onDragStopped = { velocity ->
                     val stop = position.floatValue >= max * STOP_AT || velocity > FLING_PX_PER_S
                     if (stop) scope.launch { stopAfterSettle(onStop) }
-                    animate(position.floatValue, if (stop) max else 0f) { value, _ -> position.floatValue = value }
+                    settling.value = scope.launch {
+                        animate(position.floatValue, if (stop) max else 0f) { value, _ -> position.floatValue = value }
+                    }
                 },
             ),
         contentAlignment = Alignment.Center,

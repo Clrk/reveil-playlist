@@ -72,13 +72,13 @@ class RingService : Service() {
     private fun ring(id: String) {
         alarmId = id
         val alarm = app.alarms.find(id)
-        val weather = WeatherRepository(this)
-        RingState.show(alarm, weather.day())
-        scope.launch { RingState.weather(withContext(Dispatchers.IO) { weather.refresh(); weather.day() }) }
         val canSnooze = alarm?.snoozesLeft != 0
         val type = ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
         ServiceCompat.startForeground(this, NOTIFICATION, notification(alarm?.label, canSnooze), type)
         wakeLock.acquire(MAX_RING_MS)
+        val weather = WeatherRepository(this)
+        RingState.show(alarm, weather.day())
+        scope.launch { RingState.weather(withContext(Dispatchers.IO) { weather.refresh(); weather.day() }) }
         scope.rampVolume(player, VolumeRamp(alarm?.rampSeconds ?: Alarm.DEFAULT_RAMP_SECONDS))
         scope.launch {
             val ringMusic = RingMusic(this@RingService, alarm?.playlistId)

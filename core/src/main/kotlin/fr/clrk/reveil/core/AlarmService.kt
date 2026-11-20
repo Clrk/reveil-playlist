@@ -40,10 +40,10 @@ class AlarmService(
 
     /** Deletes the alarm; returns its playlist when no other alarm uses it, so its songs can be removed from the phone. */
     fun delete(id: String): String? {
-        val playlist = repository.all().associate { it.id to it.playlistId }[id]
+        val playlists = repository.all().filter { it.id == id }.mapNotNull { it.playlistId }
         repository.delete(id)
         planner.cancel(id)
-        return playlist?.takeIf { p -> repository.all().none { it.playlistId == p } }
+        return unused(playlists).firstOrNull()
     }
 
     fun next(): Pair<Alarm, ZonedDateTime>? = repository.all()
@@ -89,4 +89,10 @@ class AlarmService(
     fun rescheduleAll() = repository.all().forEach(::plan)
 
     private fun plan(alarm: Alarm) = planner.plan(alarm)
+}
+
+/** Among [playlists], those no alarm uses: checked again just before their songs are removed. */
+fun AlarmService.unused(playlists: Collection<String>): List<String> {
+    val used = list().mapNotNull { it.playlistId }
+    return playlists.filterNot { it in used }
 }

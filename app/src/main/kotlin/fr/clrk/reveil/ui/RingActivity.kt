@@ -22,7 +22,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import fr.clrk.reveil.alarm.RingService
@@ -57,11 +56,11 @@ class RingActivity : ComponentActivity() {
 }
 
 internal val RingColors = darkColorScheme(
-    background = Color(0xFF06090B),
-    surface = Color(0xFF06090B),
-    onSurface = Color(0xFFE6D6C4),
-    primary = Color(0xFFE3A36B),
-    onPrimary = Color(0xFF1A1210),
+    background = Night.BG,
+    surface = Night.BG,
+    onSurface = Night.CREAM,
+    primary = Night.EMBER,
+    onPrimary = Night.ON_EMBER,
 )
 
 /**

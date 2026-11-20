@@ -35,6 +35,7 @@ import fr.clrk.reveil.core.ArmPose
 import fr.clrk.reveil.core.CoverCrop
 import fr.clrk.reveil.core.LightStage
 import fr.clrk.reveil.core.DropShadow
+import fr.clrk.reveil.core.RainRunner
 import fr.clrk.reveil.core.RainRunners
 import fr.clrk.reveil.core.Sky
 
@@ -130,7 +131,7 @@ private fun DrawScope.dropShadow(drop: DropShadow) {
         center = Offset.Zero, radius = drop.radius * 1.6f)
     withTransform({
         translate(drop.x, drop.y)
-        rotate(RUN_ANGLE, Offset.Zero)
+        rotate(RainRunner.RUN_DEGREES, Offset.Zero)
         scale(drop.stretch, 1f, Offset.Zero)
     }) { drawCircle(brush, drop.radius * 1.6f, Offset.Zero) }
 }
@@ -138,7 +139,6 @@ private fun DrawScope.dropShadow(drop: DropShadow) {
 private val DROP_SHADE = Color(0xFF7A6152)
 
 /** Direction the shadows run in, toward the window (left and a little up), in degrees. */
-private const val RUN_ANGLE = 199.3f
 
 /** The lit picture fades in while the sun patch enters from the window side (only with sun). */
 private fun DrawScope.lit(light: LightStage, sweep: Boolean, content: DrawScope.() -> Unit) {

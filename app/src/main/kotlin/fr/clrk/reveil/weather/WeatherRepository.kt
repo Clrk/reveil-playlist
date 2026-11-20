@@ -8,8 +8,9 @@ import fr.clrk.reveil.core.Geocoding
 import fr.clrk.reveil.core.OpenMeteo
 import fr.clrk.reveil.core.Place
 import fr.clrk.reveil.core.PlaceStore
+import fr.clrk.reveil.music.NewPipeDownloader
+import fr.clrk.reveil.text
 import okhttp3.OkHttpClient
-import okhttp3.Request
 import java.io.File
 import java.time.LocalDate
 import java.util.concurrent.TimeUnit
@@ -26,7 +27,7 @@ class WeatherRepository(context: Context) {
     }
 
     fun day(date: LocalDate = LocalDate.now()): DayWeather? =
-        prefs.getString(KEY_BODY, null)?.takeIf { places.place() != null }?.let { DayWeather.of(OpenMeteo.hours(it, date)) }
+        prefs.getString(KEY_BODY, null)?.let { DayWeather.of(OpenMeteo.hours(it, date)) }
 
     /** Blocking: cities matching what the user typed, empty when offline. */
     fun search(query: String): List<Place> =
@@ -42,13 +43,11 @@ class WeatherRepository(context: Context) {
         refresh()
     }
 
-    private fun get(url: String): String? = runCatching {
-        http.newCall(Request.Builder().url(url).build()).execute().use { if (it.isSuccessful) it.body.string() else null }
-    }.getOrNull()
+    private fun get(url: String): String? = http.text(url)
 
     private companion object {
         const val KEY_BODY = "openMeteo"
         const val TIMEOUT_S = 8L
-        val http: OkHttpClient = OkHttpClient.Builder().callTimeout(TIMEOUT_S, TimeUnit.SECONDS).build()
+        val http: OkHttpClient = NewPipeDownloader.instance.client.newBuilder().callTimeout(TIMEOUT_S, TimeUnit.SECONDS).build()
     }
 }

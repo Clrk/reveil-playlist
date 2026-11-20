@@ -6,7 +6,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -36,45 +35,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import fr.clrk.reveil.core.Alarm
+import fr.clrk.reveil.core.Recurrence
 import fr.clrk.reveil.core.PlaylistChoice
 import fr.clrk.reveil.core.PlaylistId
 import fr.clrk.reveil.core.PlaylistLink
 import java.time.DayOfWeek
 import java.time.LocalTime
-
-interface EditorActions {
-    fun save(alarm: Alarm)
-    fun delete(alarm: Alarm)
-    fun test(alarm: Alarm)
-    fun prefetch(playlist: String)
-    fun skip(alarm: Alarm)
-    fun close()
-}
-
-/** Saving, deleting or closing lets the editor ease out first. */
-private class Leaving(private val inner: EditorActions, private val leave: Leave, private val flight: Flight, private val home: Alarm?) :
-    EditorActions by inner {
-    override fun save(alarm: Alarm) {
-        flight.takeOff(EDITOR, alarm.id, alarm.playlistCover)
-        leave.then { inner.save(alarm) }
-    }
-    override fun delete(alarm: Alarm) = leave.then { inner.delete(alarm) }
-    override fun close() {
-        home?.let { flight.takeOff(EDITOR, it.id, it.playlistCover) }
-        leave.then(inner::close)
-    }
-}
-
-object Days {
-    private val letters = listOf("L", "M", "M", "J", "V", "S", "D")
-    val all = DayOfWeek.entries.zip(letters)
-
-    fun summary(days: Set<DayOfWeek>): String = when (days) {
-        emptySet<DayOfWeek>() -> "Une fois"
-        DayOfWeek.entries.toSet() -> "Tous les jours"
-        else -> all.filter { it.first in days }.joinToString(" ") { it.second }
-    }
-}
 
 private val SNOOZE_CHOICES = listOf(5, 9, 10, 15, 20).map { it to "$it" }
 private val MAX_SNOOZE_CHOICES = listOf(1, 2, 3, 5).map { it to "$it" } + (null to "∞")
@@ -229,8 +195,8 @@ private fun <T> Choices(title: String, choices: List<Pair<T, String>>, selected:
 @Composable
 private fun DayChips(days: Set<DayOfWeek>, onChange: (Set<DayOfWeek>) -> Unit) {
     FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        Days.all.forEach { (day, letter) ->
-            FilterChip(day in days, { onChange(if (day in days) days - day else days + day) }, label = { Text(letter) })
+        DayOfWeek.entries.forEach { day ->
+            FilterChip(day in days, { onChange(Recurrence.toggle(days, day)) }, label = { Text(Recurrence.letter(day)) })
         }
     }
 }

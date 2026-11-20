@@ -8,7 +8,8 @@ import androidx.core.net.toUri
 import android.provider.Settings
 import fr.clrk.reveil.core.Releases
 import fr.clrk.reveil.core.Update
-import okhttp3.OkHttpClient
+import fr.clrk.reveil.music.NewPipeDownloader
+import fr.clrk.reveil.text
 import okhttp3.Request
 import java.io.File
 import java.io.InputStream
@@ -19,10 +20,8 @@ class Updater(private val context: Context) {
     private val installed get() = context.packageManager.getPackageInfo(context.packageName, 0).versionName.orEmpty()
 
     /** Blocking: the newer version published on GitHub, if any. */
-    fun check(): Update? = runCatching {
-        val request = Request.Builder().url(Releases.LATEST).header("Accept", "application/vnd.github+json").build()
-        http.newCall(request).execute().use { if (it.isSuccessful) Releases.newer(installed, it.body.string()) else null }
-    }.getOrNull()
+    fun check(): Update? =
+        http.text(Releases.LATEST, mapOf("Accept" to "application/vnd.github+json"))?.let { Releases.newer(installed, it) }
 
     /** Android asks once to allow this app to install its own updates. */
     fun allowed(): Boolean = context.packageManager.canRequestPackageInstalls()
@@ -32,7 +31,10 @@ class Updater(private val context: Context) {
         context.startActivity(settings.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 
-    /** Blocking: downloads the APK, reporting [progress] from 0 to 1, then hands it to Android to install. */
+    /**
+     * Blocking: downloads the APK, reporting [progress] from 0 to 1, then hands it to Android,
+     * which asks the person to confirm on its own screen. False when the download or the hand-over failed.
+     */
     fun install(update: Update, progress: (Float) -> Unit): Boolean = runCatching {
         val apk = download(update, progress)
         val installer = context.packageManager.packageInstaller
@@ -47,6 +49,7 @@ class Updater(private val context: Context) {
     private fun download(update: Update, progress: (Float) -> Unit): File {
         val file = File(context.cacheDir, "update.apk")
         http.newCall(Request.Builder().url(update.apk).build()).execute().use { response ->
+            check(response.isSuccessful) { "HTTP ${response.code}" }
             val body = response.body
             val total = body.contentLength().coerceAtLeast(1)
             body.byteStream().use { input -> file.outputStream().use { out -> copy(input, out, total, progress) } }
@@ -73,6 +76,6 @@ class Updater(private val context: Context) {
 
     private companion object {
         const val BUFFER = 64 * 1024
-        val http = OkHttpClient()
+        val http get() = NewPipeDownloader.instance.client
     }
 }

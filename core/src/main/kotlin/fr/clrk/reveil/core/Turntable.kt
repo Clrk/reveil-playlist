@@ -6,13 +6,17 @@ object Turntable {
     private const val SPIN_FROM_MS = Tonearm.START_MS + 200
     private const val SPEED_UP_MS = 1200f
     private const val MS_PER_MINUTE = 60_000f
-    private const val TURN = 360f
+
+    const val TURN = 360f
 
     /** Rotation at full speed, in degrees per millisecond. */
     const val DEGREES_PER_MS = RPM * TURN / MS_PER_MINUTE
 
     /** Share of full speed, from 0 (still) to 1. */
-    fun speed(elapsedMs: Long): Float = ((elapsedMs - SPIN_FROM_MS) / SPEED_UP_MS).coerceIn(0f, 1f)
+    fun speed(elapsedMs: Long): Float = speedUp(elapsedMs - SPIN_FROM_MS)
+
+    /** Share of full speed [sinceMs] after the record was set spinning. */
+    fun speedUp(sinceMs: Long): Float = (sinceMs / SPEED_UP_MS).coerceIn(0f, 1f)
 
     fun rpm(elapsedMs: Long): Float = RPM * speed(elapsedMs)
 

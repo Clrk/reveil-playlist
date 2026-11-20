@@ -1,10 +1,10 @@
 package fr.clrk.reveil.ui
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,7 +24,7 @@ import androidx.compose.ui.unit.sp
 fun OnboardingScreen(steps: List<PermissionStep>, city: String?, onWeather: () -> Unit, onDone: () -> Unit) = NightPage {
     Column(Modifier.fillMaxSize().navigationBarsPadding()) {
         WaitingTurntable(Modifier.fillMaxWidth().height(230.dp).reveal(0))
-        Column(Modifier.padding(horizontal = 24.dp).weight(1f)) {
+        Column(Modifier.padding(horizontal = 24.dp).weight(1f).verticalScroll(rememberScrollState())) {
             Text("Bonsoir.", Modifier.reveal(1), fontSize = 40.sp, fontWeight = FontWeight.ExtraLight)
             Text(
                 "Pour que la musique vous réveille à coup sûr, Android doit autoriser ${count(steps.size)} choses.",
@@ -32,9 +32,8 @@ fun OnboardingScreen(steps: List<PermissionStep>, city: String?, onWeather: () -
             )
             steps.forEachIndexed { i, step -> Line(step.title, step.why, if (step.granted) null else "Autoriser", step.fix, order = 3 + i) }
             WeatherChoice(city, onWeather, order = 3 + steps.size)
-            Spacer(Modifier.weight(1f))
-            Cta(start(steps), onDone, Modifier.padding(bottom = 24.dp).reveal(order = 4 + steps.size))
         }
+        Cta(start(steps), onDone, Modifier.padding(horizontal = 24.dp).padding(bottom = 24.dp).reveal(order = 4 + steps.size))
     }
 }
 

@@ -114,3 +114,7 @@ Fonctionnalité: Gestion des alarmes
     Et l'alarme "Week-end" à "09:30" répétée "sam" avec la playlist "PL1" nommée "Chill matin"
     Quand je supprime l'alarme "Boulot"
     Alors aucune chanson n'est effacée du téléphone
+
+  Scénario: Avant d'effacer des chansons, on vérifie qu'aucun réveil ne s'en sert
+    Soit l'alarme "Boulot" à "07:00" répétée "lun" avec la playlist "PL1" nommée "Chill matin"
+    Alors parmi les playlists "PL1, PL2", seules les chansons de "PL2" peuvent être effacées
