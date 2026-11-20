@@ -2,7 +2,7 @@ name: NewPipe
 
 # Every morning: checks that YouTube still works with the current NewPipeExtractor, and moves to
 # its latest release when there is one. A new release that passes the tests is merged and published
-# right away (the phones then update themselves); anything that fails opens an issue instead.
+# right away (the phones then offer it); anything that fails opens an issue instead.
 on:
   schedule:
     - cron: "17 4 * * *"

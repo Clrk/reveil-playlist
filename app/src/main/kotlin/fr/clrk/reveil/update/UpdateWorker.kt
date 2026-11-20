@@ -1,6 +1,10 @@
 package fr.clrk.reveil.update
 
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import androidx.core.app.NotificationCompat
+import androidx.core.content.edit
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
@@ -8,40 +12,47 @@ import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import fr.clrk.reveil.alarm.RingState
-import fr.clrk.reveil.app
-import fr.clrk.reveil.core.SilentUpdate
+import fr.clrk.reveil.R
+import fr.clrk.reveil.ReveilApp
+import fr.clrk.reveil.core.Update
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.time.Instant
 import java.util.concurrent.TimeUnit
 
-/**
- * A few times a day, on Wi-Fi: installs a newer version unattended (Android 12+), never close to a wake-up.
- * Before Android 12 Android needs a tap: the version is downloaded and a notification offers to install it.
- */
+/** A few times a day: when a newer version is out, a quiet notification offers it, once per version. */
 class UpdateWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
+    private val prefs = context.getSharedPreferences("update", Context.MODE_PRIVATE)
+
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         val updater = Updater(applicationContext)
-        val update = updater.check()
-        if (update != null && updater.allowed() && quiet()) updater.install(update, background = true) { }
+        updater.check()?.takeIf { it.version != prefs.getString(NOTIFIED, null) }?.let { notify(updater, it) }
         Result.success()
     }
 
-    private fun quiet(): Boolean {
-        val alarms = applicationContext.app.alarms
-        val upcoming = listOfNotNull(alarms.next()?.second?.toInstant()) + alarms.list().mapNotNull { it.snoozedUntil }
-        return SilentUpdate.allowed(Instant.now(), upcoming, ringing = RingState.ui.value != null)
+    private fun notify(updater: Updater, update: Update) {
+        val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        val open = PendingIntent.getActivity(applicationContext, 0, updater.download(update), flags)
+        val notification = NotificationCompat.Builder(applicationContext, ReveilApp.CHANNEL_REMINDER)
+            .setSmallIcon(R.drawable.ic_alarm)
+            .setContentTitle("Nouvelle version ${update.version} disponible")
+            .setContentText("Touchez pour la télécharger, puis ouvrez le fichier pour l'installer")
+            .setContentIntent(open)
+            .setAutoCancel(true)
+            .build()
+        applicationContext.getSystemService(NotificationManager::class.java).notify(NOTIFICATION, notification)
+        prefs.edit { putString(NOTIFIED, update.version) }
     }
 
     companion object {
         private const val WORK = "update"
+        private const val NOTIFIED = "notified"
+        private const val NOTIFICATION = 7
         private const val EVERY_HOURS = 6L
 
         fun schedule(context: Context) {
-            val constraints = Constraints.Builder().setRequiredNetworkType(NetworkType.UNMETERED).setRequiresBatteryNotLow(true).build()
+            val constraints = Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
             val request = PeriodicWorkRequestBuilder<UpdateWorker>(EVERY_HOURS, TimeUnit.HOURS).setConstraints(constraints).build()
-            WorkManager.getInstance(context).enqueueUniquePeriodicWork(WORK, ExistingPeriodicWorkPolicy.KEEP, request)
+            WorkManager.getInstance(context).enqueueUniquePeriodicWork(WORK, ExistingPeriodicWorkPolicy.UPDATE, request)
         }
     }
 }
