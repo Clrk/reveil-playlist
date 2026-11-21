@@ -5,7 +5,8 @@ name: NewPipe
 # right away (the phones then offer it); anything that fails opens an issue instead.
 # YouTube sometimes asks GitHub's servers to sign in ("confirm you're not a bot") because they are
 # datacenter machines: phones are not concerned, so that answer is "unknown", not "broken". Then no
-# issue is opened, and a new NewPipeExtractor is proposed as a pull request without being merged.
+# issue is opened, and a new NewPipeExtractor is still merged and published once the project tests
+# pass: search and playlist reading were checked, and keeping NewPipe up to date is the real repair.
 on:
   schedule:
     - cron: "17 4 * * *"
@@ -62,7 +63,7 @@ jobs:
       - name: Merge and publish
         if: steps.versions.outputs.latest != steps.versions.outputs.current
         env:
-          VERIFIED: ${{ steps.smoke.outputs.result == 'ok' }}
+          SMOKE: ${{ steps.smoke.outputs.result }}
         run: |
           code=$(sed -n 's/.*versionCode = \([0-9]*\).*/\1/p' app/build.gradle.kts)
           name=$(sed -n 's/.*versionName = "\(.*\)".*/\1/p' app/build.gradle.kts)
@@ -78,13 +79,11 @@ jobs:
           git checkout -b "$branch"
           git commit -am "NewPipeExtractor ${{ steps.versions.outputs.latest }} (version $next)"
           git push -u origin "$branch"
-          if [ "$VERIFIED" != "true" ]; then
-            gh pr create --base main --head "$branch" --title "NewPipeExtractor ${{ steps.versions.outputs.latest }} (à vérifier)" \
-              --body "Tests du projet verts, mais YouTube a refusé de répondre aux serveurs GitHub (vérification « robot »). À essayer sur un téléphone avant de fusionner : la fusion publie la version."
-            exit 0
+          body="Mise à jour automatique : YouTube fonctionne avec la nouvelle version (test réel + tests du projet verts)."
+          if [ "$SMOKE" = "bot-check" ]; then
+            body="Mise à jour automatique : tests du projet verts. YouTube a refusé de répondre aux serveurs GitHub (vérification « robot »), les téléphones ne sont pas concernés."
           fi
-          gh pr create --base main --head "$branch" --title "NewPipeExtractor ${{ steps.versions.outputs.latest }}" \
-            --body "Mise à jour automatique : YouTube fonctionne avec la nouvelle version (test réel + tests du projet verts)."
+          gh pr create --base main --head "$branch" --title "NewPipeExtractor ${{ steps.versions.outputs.latest }}" --body "$body"
           gh pr merge "$branch" --squash --delete-branch
           gh workflow run release.yml --ref main
       - name: Close the warning

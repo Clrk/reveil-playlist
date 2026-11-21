@@ -85,3 +85,30 @@ Fonctionnalité: Pré-télécharger des morceaux la veille pour un réveil fiabl
     Quand le pré-téléchargement choisit les morceaux
     Alors il télécharge "1" morceaux parmi "D"
     Et il supprime "A"
+
+  Scénario: Si aucun morceau n'arrive, aucun morceau n'est supprimé
+    Soit la playlist en ligne contient "A,B,C,D"
+    Et les morceaux en cache "A,B"
+    Et le morceau "A" a déjà été joué au réveil
+    Et le cache garde "2" morceaux
+    Quand le pré-téléchargement choisit les morceaux
+    Et "0" morceaux arrivent
+    Alors il ne supprime aucun morceau
+
+  Scénario: Un morceau n'est supprimé que si un autre est arrivé à sa place
+    Soit la playlist en ligne contient "A,B,C,D,E,F"
+    Et les morceaux en cache "A,B"
+    Et le morceau "A" a déjà été joué au réveil
+    Et le morceau "B" a déjà été joué au réveil
+    Et le cache garde "2" morceaux
+    Quand le pré-téléchargement choisit les morceaux
+    Et "1" morceaux arrivent
+    Alors il supprime "A"
+
+  Scénario: Un morceau retiré de la playlist est supprimé même si rien n'arrive
+    Soit la playlist en ligne contient "A,C"
+    Et les morceaux en cache "A,B"
+    Et le cache garde "5" morceaux
+    Quand le pré-téléchargement choisit les morceaux
+    Et "0" morceaux arrivent
+    Alors il supprime "B"

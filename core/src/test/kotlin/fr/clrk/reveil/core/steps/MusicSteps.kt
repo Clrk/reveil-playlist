@@ -38,16 +38,25 @@ private fun StepRegistry<MusicWorld>.playbackSteps() {
         val first = (session.queue.first() as WakeSource.Music).track.id
         assertEquals(Formats.list(ids).minus(first), listOfNotNull(currentId()))
     }
-    step("la file contient $VALUE puis la sonnerie de secours") { (ids) ->
-        val music = session.queue.dropLast(1).map { (it as WakeSource.Music).track.id }
-        assertEquals(Formats.list(ids).sorted(), music.sorted())
-        assertEquals(WakeSource.Ringtone, session.queue.last())
-    }
     step("sur \"(\\d+)\" réveils successifs le premier morceau change à chaque fois") { (count) ->
         val firsts = generateSequence(ring().current) { previous ->
             ring((previous as WakeSource.Music).track.id).current
         }.take(count.toInt()).toList()
         firsts.zipWithNext().forEach { (a, b) -> assertNotEquals(a, b) }
+    }
+}
+
+private fun StepRegistry<MusicWorld>.queueSteps() {
+    step("la file contient $VALUE puis la sonnerie de secours") { (ids) ->
+        val music = session.queue.dropLast(1).map { (it as WakeSource.Music).track.id }
+        assertEquals(Formats.list(ids).sorted(), music.sorted())
+        assertEquals(WakeSource.Ringtone, session.queue.last())
+    }
+    step("la file contient $VALUE puis $VALUE puis la sonnerie de secours") { (first, last) ->
+        val music = session.queue.dropLast(1).map { (it as WakeSource.Music).track.id }
+        val heard = Formats.list(last)
+        assertEquals(Formats.list(first).sorted(), music.dropLast(heard.size).sorted())
+        assertEquals(heard.sorted(), music.takeLast(heard.size).sorted())
     }
 }
 
@@ -57,7 +66,9 @@ private fun StepRegistry<MusicWorld>.prefetchSteps() {
     }
     step("le pré-téléchargement choisit les morceaux") {
         prefetch = PrefetchPolicy.plan(playlistTracks(), cached, played, capacity, random, known)
+        arrived = prefetch.download.size
     }
+    step("\"(\\d+)\" morceaux arrivent") { (count) -> arrived = count.toInt() }
     step("il télécharge \"(\\d+)\" morceaux parmi $VALUE") { (count, ids) ->
         assertEquals(count.toInt(), prefetch.download.size)
         assertTrue(Formats.list(ids).containsAll(prefetch.download.map { it.id }))
@@ -65,12 +76,14 @@ private fun StepRegistry<MusicWorld>.prefetchSteps() {
     step("la playlist contenait $VALUE au dernier téléchargement") { (ids) -> known = Formats.list(ids).toSet() }
     step("il télécharge notamment $VALUE") { (id) -> assertTrue(id in prefetch.download.map { it.id }) }
     step("il supprime \"(\\d+)\" morceaux parmi $VALUE") { (count, ids) ->
-        assertEquals(count.toInt(), prefetch.evict.size)
-        assertTrue(Formats.list(ids).containsAll(prefetch.evict.map { it.id }))
+        assertEquals(count.toInt(), evicted().size)
+        assertTrue(Formats.list(ids).containsAll(evicted().map { it.id }))
     }
-    step("il supprime $VALUE") { (ids) -> assertEquals(Formats.list(ids), prefetch.evict.map { it.id }) }
-    step("il ne supprime aucun morceau") { assertEquals(emptyList<Any>(), prefetch.evict) }
+    step("il supprime $VALUE") { (ids) -> assertEquals(Formats.list(ids), evicted().map { it.id }) }
+    step("il ne supprime aucun morceau") { assertEquals(emptyList<Any>(), evicted()) }
 }
+
+private fun MusicWorld.evicted() = prefetch.evictAfter(arrived)
 
 private fun MusicWorld.playlistTracks() = runCatching { online.tracks(playlist!!) }.getOrDefault(emptyList())
 
@@ -87,6 +100,7 @@ private fun StepRegistry<MusicWorld>.linkSteps() {
 private fun StepRegistry<MusicWorld>.musicSteps() {
     contextSteps()
     playbackSteps()
+    queueSteps()
     prefetchSteps()
     linkSteps()
 }

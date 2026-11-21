@@ -9,12 +9,21 @@ sealed interface WakeSource {
     data object Ringtone : WakeSource
 }
 
-/** Builds the shuffled wake-up queue: cached tracks first, then streamed ones, ringtone last. */
+/**
+ * Builds the shuffled wake-up queue: cached tracks first, then streamed ones, ringtone last.
+ * Cached tracks already heard ([played], kept because no new one could replace them) come after the others.
+ */
 class WakeQueueBuilder(private val source: PlaylistSource, private val random: Random) {
-    fun build(playlist: PlaylistId?, cached: List<Track>, previousFirst: String?): List<WakeSource> {
+    fun build(
+        playlist: PlaylistId?,
+        cached: List<Track>,
+        previousFirst: String?,
+        played: Set<String> = emptySet(),
+    ): List<WakeSource> {
         if (playlist == null) return listOf(WakeSource.Ringtone)
         val cachedIds = cached.map { it.id }.toSet()
-        val local = cached.shuffled(random).map { WakeSource.Music(it, cached = true) }
+        val (heard, fresh) = cached.partition { it.id in played }
+        val local = (fresh.shuffled(random) + heard.shuffled(random)).map { WakeSource.Music(it, cached = true) }
         val remote = online(playlist).filterNot { it.id in cachedIds }.shuffled(random)
             .map { WakeSource.Music(it, cached = false) }
         return avoidRepeat(local + remote, previousFirst) + WakeSource.Ringtone
@@ -26,7 +35,7 @@ class WakeQueueBuilder(private val source: PlaylistSource, private val random: R
     private fun avoidRepeat(music: List<WakeSource.Music>, previousFirst: String?): List<WakeSource.Music> {
         val local = music.takeWhile { it.cached }.ifEmpty { music }
         if (local.size < 2 || music.first().track.id != previousFirst) return music
-        return listOf(local.last()) + music.filterNot { it === local.last() }
+        return listOf(local[1]) + music.filterNot { it === local[1] }
     }
 }
 

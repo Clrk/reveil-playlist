@@ -3,7 +3,21 @@ package fr.clrk.reveil.core
 import java.time.ZonedDateTime
 import kotlin.random.Random
 
-data class PrefetchPlan(val download: List<Track>, val evict: List<Track>)
+/**
+ * [removed] left the playlist; each of [swapped] gives its place to a downloaded track, once [room]
+ * free places are filled. A download that fails must never empty the cache: see [evictAfter].
+ */
+data class PrefetchPlan(
+    val download: List<Track>,
+    val removed: List<Track> = emptyList(),
+    val swapped: List<Track> = emptyList(),
+    val room: Int = 0,
+) {
+    val evict: List<Track> get() = removed + swapped
+
+    /** What to delete once [stored] of [download] really arrived: a track only goes when another took its place. */
+    fun evictAfter(stored: Int): List<Track> = removed + swapped.take((stored - room).coerceAtLeast(0))
+}
 
 /** Decides when to pre-download wake-up tracks and which ones to fetch or drop. */
 object PrefetchPolicy {
@@ -24,7 +38,7 @@ object PrefetchPolicy {
         random: Random,
         known: Set<String> = emptySet(),
     ): PrefetchPlan {
-        if (playlist.isEmpty()) return PrefetchPlan(emptyList(), emptyList())
+        if (playlist.isEmpty()) return PrefetchPlan(emptyList())
         val playlistIds = playlist.map { it.id }.toSet()
         val (kept, removed) = cached.partition { it.id in playlistIds }
         val cachedIds = cached.map { it.id }.toSet()
@@ -36,6 +50,6 @@ object PrefetchPolicy {
         val queue = added.shuffled(random) + others.shuffled(random)
         val download = queue.take(room + stale.size + bumped)
         val freed = (download.size - room).coerceAtLeast(0)
-        return PrefetchPlan(download, removed + (stale + unplayed.shuffled(random)).take(freed))
+        return PrefetchPlan(download, removed, (stale + unplayed.shuffled(random)).take(freed), room)
     }
 }
