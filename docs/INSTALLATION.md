@@ -53,9 +53,10 @@ Elles servent à faire sonner le réveil à coup sûr.
 ## 5. Mettre à jour
 
 1. Un bandeau **« Nouvelle version disponible »** apparaît en haut de l'app.
-2. Touchez **« Installer »**.
-3. Ouvrez le fichier téléchargé.
-4. Touchez **« Mettre à jour »**.
+2. Touchez **« Installer »**. L'app télécharge la nouvelle version.
+3. Quand c'est prêt, touchez **« Ouvrir »**, puis le fichier.
+4. La première fois, Android bloque : activez **« Autoriser cette source »** pour l'app Fichiers.
+5. Touchez **« Mettre à jour »**.
 
 Vos réveils sont gardés.
 L'app ne se met jamais à jour toute seule.

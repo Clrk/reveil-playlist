@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -40,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import fr.clrk.reveil.core.Alarm
 import fr.clrk.reveil.core.HalfDay
+import fr.clrk.reveil.core.UpdateBanner
 import fr.clrk.reveil.core.WakeInfo
 
 /** Everything the alarm list displays, computed by the activity. [offline] maps alarm ids to their offline status. */
@@ -53,12 +55,9 @@ data class ListUi(
     val undo: (() -> Unit)? = null,
     val weather: WeatherLine = WeatherLine(),
     val preparing: Map<String, Float> = emptyMap(),
-    val update: UpdateNote? = null,
+    val update: UpdateBanner? = null,
     val youtubeBroken: Boolean = false,
 )
-
-/** A newer version found on GitHub. */
-data class UpdateNote(val version: String)
 
 /** Tomorrow morning's weather for the list, once a [city] is chosen. */
 data class WeatherLine(val city: String? = null, val morning: HalfDay? = null)
@@ -131,12 +130,13 @@ private fun Notices(ui: ListUi, events: ListEvents) {
 private const val YOUTUBE_BROKEN = "YouTube a changé et votre musique risque de ne pas se lancer. " +
     "Le réveil sonnera quand même avec la sonnerie d'alarme, le temps qu'une mise à jour arrive."
 
-/** One line, like the warnings: a newer version, and one tap to install it. */
+/** One line, like the warnings: a newer version, its download, and one tap for what comes next. */
 @Composable
-private fun NewVersion(note: UpdateNote, install: () -> Unit) {
-    Row(Modifier.fillMaxWidth().padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text("Nouvelle version ${note.version} disponible", Modifier.weight(1f), color = Night.CAPTION, fontSize = 13.sp)
-        TextButton(onClick = install) { Text("Installer", color = Night.EMBER) }
+private fun NewVersion(banner: UpdateBanner, act: () -> Unit) {
+    // As tall as with its button, so the list does not jump while the download runs.
+    Row(Modifier.fillMaxWidth().padding(top = 10.dp).heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(banner.text, Modifier.weight(1f), color = Night.CAPTION, fontSize = 13.sp)
+        banner.button?.let { TextButton(onClick = act) { Text(it, color = Night.EMBER) } }
     }
 }
 

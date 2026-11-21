@@ -41,3 +41,33 @@ Fonctionnalité: Mise à jour depuis GitHub
     Soit la version installée "0.9.8"
     Et GitHub répond "{pas du json"
     Alors aucune mise à jour n'est proposée
+
+  # Sans permission d'installer (Play Protect bloque les apps qui l'ont), l'app télécharge elle-même
+  # le fichier, puis Android l'installe quand on l'ouvre depuis les téléchargements.
+
+  Scénario: Une nouvelle version se propose avant tout téléchargement
+    Soit la nouvelle version "0.9.12"
+    Alors le bandeau dit "Nouvelle version 0.9.12 disponible" avec le bouton "Installer"
+
+  Scénario: Le téléchargement montre où il en est
+    Soit la nouvelle version "0.9.12"
+    Quand 3 Mo sur 6 Mo sont téléchargés
+    Alors le bandeau dit "Téléchargement de la version 0.9.12 : 50 %" sans bouton
+
+  Scénario: Un téléchargement de taille inconnue montre seulement qu'il avance
+    Soit la nouvelle version "0.9.12"
+    Quand 3 Mo d'une taille inconnue sont téléchargés
+    Alors le bandeau dit "Téléchargement de la version 0.9.12…" sans bouton
+
+  Scénario: Le fichier téléchargé s'ouvre pour l'installer
+    Soit la nouvelle version "0.9.12"
+    Quand le téléchargement est terminé
+    Alors le bandeau dit "Version 0.9.12 prête à installer" avec le bouton "Ouvrir"
+
+  Scénario: Un téléchargement raté se relance
+    Soit la nouvelle version "0.9.12"
+    Quand le téléchargement échoue
+    Alors le bandeau dit "Le téléchargement de la version 0.9.12 a échoué" avec le bouton "Réessayer"
+
+  Scénario: Le fichier porte le numéro de la version
+    Alors le fichier de la version "0.9.12" s'appelle "reveil-playlist-0.9.12.apk"

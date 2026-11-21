@@ -1,6 +1,8 @@
 package fr.clrk.reveil.core.steps
 
+import fr.clrk.reveil.core.Download
 import fr.clrk.reveil.core.Releases
+import fr.clrk.reveil.core.UpdateBanner
 import fr.clrk.reveil.core.bdd.FeatureRunner
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
@@ -17,8 +19,15 @@ class MiseAJourWorld {
         answer = """{"tag_name":"$tag","assets":$assets}"""
     }
 
+    var version = ""
+    var download: Download? = null
+
     fun update() = Releases.newer(installed, answer)
+
+    fun banner() = UpdateBanner.of(version, download)
 }
+
+private const val MB = 1_000_000L
 
 class MiseAJourTest {
     @TestFactory
@@ -31,5 +40,19 @@ class MiseAJourTest {
         step("la mise à jour proposée est \"([^\"]+)\"") { (v) -> assertEquals(v, update()?.version) }
         step("elle se télécharge depuis \"([^\"]+)\"") { (url) -> assertEquals(url, update()?.apk) }
         step("aucune mise à jour n'est proposée") { assertNull(update()) }
+        step("la nouvelle version \"([^\"]+)\"") { (v) -> version = v }
+        step("(\\d+) Mo sur (\\d+) Mo sont téléchargés") { (done, total) ->
+            download = Download.Running(done.toLong() * MB, total.toLong() * MB)
+        }
+        step("(\\d+) Mo d'une taille inconnue sont téléchargés") { (done) -> download = Download.Running(done.toLong() * MB, -1) }
+        step("le téléchargement est terminé") { download = Download.Done }
+        step("le téléchargement échoue") { download = Download.Failed }
+        step("le bandeau dit \"([^\"]+)\" avec le bouton \"([^\"]+)\"") { (text, button) ->
+            assertEquals(text to button, banner().text to banner().button)
+        }
+        step("le bandeau dit \"([^\"]+)\" sans bouton") { (text) -> assertEquals(text to null, banner().text to banner().button) }
+        step("le fichier de la version \"([^\"]+)\" s'appelle \"([^\"]+)\"") { (v, name) ->
+            assertEquals(name, UpdateBanner.fileName(v))
+        }
     }
 }
