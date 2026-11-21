@@ -5,7 +5,7 @@ Vous l'installez vous-même, une seule fois.
 Il faut un téléphone Android 9 ou plus récent.
 
 <p align="center">
-  <img src="installer-1-telecharger.png" width="200" alt="Étape 1 : télécharger le fichier .apk">
+  <img src="installer-1-telecharger.png" width="200" alt="Étape 1 : Télécharger l'app, puis Télécharger quand même">
   <img src="installer-2-autoriser.png" width="200" alt="Étape 2 : autoriser le navigateur, puis Installer">
   <img src="installer-3-play-protect.png" width="200" alt="Étape 3 : Plus de détails, puis Installer quand même">
 </p>
@@ -14,9 +14,8 @@ Les mots peuvent changer un peu selon votre téléphone.
 
 ## 1. Télécharger
 
-1. Sur le téléphone, ouvrez la [dernière version](https://github.com/Clrk/reveil-playlist/releases/latest).
-2. Touchez le fichier qui finit par **`.apk`**.
-3. Touchez **« Télécharger quand même »**.
+1. Sur le téléphone, touchez [**Télécharger l'app**](https://github.com/Clrk/reveil-playlist/releases/latest/download/reveil-playlist.apk).
+2. Touchez **« Télécharger quand même »**.
 
 ## 2. Installer
 
