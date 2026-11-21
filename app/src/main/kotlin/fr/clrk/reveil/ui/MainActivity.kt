@@ -119,7 +119,7 @@ class MainActivity : ComponentActivity() {
     private val listEvents = object : ListEvents {
         override fun add() { creating = Alarm.at(LocalTime.of(DEFAULT_HOUR, 0)) }
         override fun weather() { choosingCity = true }
-        override fun update() = upgrade.install()
+        override fun update() = upgrade.act()
         override fun open(alarm: Alarm) { editing = alarm }
         override fun unskip(alarm: Alarm) { app.alarms.unskip(alarm.id); changed() }
         override fun delete(alarm: Alarm) = deleteWithUndo(alarm)
@@ -155,7 +155,7 @@ class MainActivity : ComponentActivity() {
         val progress = music.preparing(alarms, fetching, download)
         val offline = music.offline(alarms, fetching, download)
         val broken by YouTubeHealth.broken.collectAsState()
-        val ui = ListUi(alarms, next, permissions.warnings(), offline, announcement, skipped, undo, line, progress, upgrade.note, broken)
+        val ui = ListUi(alarms, next, permissions.warnings(), offline, announcement, skipped, undo, line, progress, upgrade.banner, broken)
         AlarmListScreen(ui, listEvents)
         LaunchedEffect(announcement) {
             delay(ANNOUNCE_MS)

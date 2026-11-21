@@ -5,11 +5,13 @@ import androidx.compose.runtime.Composable
 import app.cash.paparazzi.DeviceConfig
 import app.cash.paparazzi.Paparazzi
 import fr.clrk.reveil.core.Alarm
+import fr.clrk.reveil.core.Download
 import fr.clrk.reveil.core.HalfDay
 import fr.clrk.reveil.core.Sky
 import fr.clrk.reveil.core.PlaylistChoice
 import fr.clrk.reveil.core.PlaylistId
 import fr.clrk.reveil.core.SearchResult
+import fr.clrk.reveil.core.UpdateBanner
 import fr.clrk.reveil.core.WakeInfo
 import org.junit.Rule
 import org.junit.Test
@@ -72,7 +74,19 @@ class ScreensTest {
 
     @Test
     fun listeMiseAJour() = shot {
-        AlarmListScreen(ListUi(listOf(boulot, weekend), next, offline = ready, update = UpdateNote("0.9.8")), noListEvents)
+        AlarmListScreen(ListUi(listOf(boulot, weekend), next, offline = ready, update = UpdateBanner.of("0.9.8", null)), noListEvents)
+    }
+
+    @Test
+    fun listeMiseAJourTelechargement() = shot {
+        val banner = UpdateBanner.of("0.9.12", Download.Running(3_400_000, 6_800_000))
+        AlarmListScreen(ListUi(listOf(boulot, weekend), next, offline = ready, update = banner), noListEvents)
+    }
+
+    @Test
+    fun listeMiseAJourPrete() = shot {
+        val banner = UpdateBanner.of("0.9.12", Download.Done)
+        AlarmListScreen(ListUi(listOf(boulot, weekend), next, offline = ready, update = banner), noListEvents)
     }
 
     @Test

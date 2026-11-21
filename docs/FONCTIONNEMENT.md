@@ -60,6 +60,6 @@ La pièce est dans la nuit quand la musique commence, tout bas. Le volume monte,
   <img src="mise-a-jour.png" width="200" alt="Bandeau de nouvelle version">
 </p>
 
-L'app interroge les releases de ce dépôt. Quand une nouvelle version sort, un bandeau « Installer » apparaît en haut de la liste et une notification discrète la signale. Un geste ouvre le téléchargement dans le navigateur, puis Android l'installe comme la première fois (voir [Mettre à jour](INSTALLATION.md#5-mettre-à-jour)). L'app ne demande pas la permission d'installer des applications : Play Protect bloque les apps qui l'ont.
+L'app interroge les releases de ce dépôt. Quand une nouvelle version sort, un bandeau « Installer » apparaît en haut de la liste et une notification discrète la signale. « Installer » télécharge la nouvelle version dans l'app, avec sa progression. Quand elle est prête, « Ouvrir » affiche les téléchargements, et Android l'installe quand on touche le fichier (voir [Mettre à jour](INSTALLATION.md#5-mettre-à-jour)). L'app ne demande pas la permission d'installer des applications : Play Protect bloque les apps qui l'ont.
 
 [← Retour](../README.md)

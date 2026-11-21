@@ -21,7 +21,7 @@ Il faut Android 9 ou plus.
 
 ## Mises à jour
 
-L'app vous prévient. Touchez **« Installer »** dans le bandeau.
+L'app vous prévient. Touchez **« Installer »** dans le bandeau, puis **« Ouvrir »**.
 
 ## En savoir plus
 

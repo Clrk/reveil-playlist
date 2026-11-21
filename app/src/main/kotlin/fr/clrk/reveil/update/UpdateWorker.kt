@@ -3,6 +3,7 @@ package fr.clrk.reveil.update
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import androidx.core.app.NotificationCompat
 import androidx.core.content.edit
 import androidx.work.Constraints
@@ -15,6 +16,7 @@ import androidx.work.WorkerParameters
 import fr.clrk.reveil.R
 import fr.clrk.reveil.ReveilApp
 import fr.clrk.reveil.core.Update
+import fr.clrk.reveil.ui.MainActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.concurrent.TimeUnit
@@ -25,17 +27,19 @@ class UpdateWorker(context: Context, params: WorkerParameters) : CoroutineWorker
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         val updater = Updater(applicationContext)
-        updater.check()?.takeIf { it.version != prefs.getString(NOTIFIED, null) }?.let { notify(updater, it) }
+        updater.check()?.takeIf { it.version != prefs.getString(NOTIFIED, null) }?.let(::notify)
         Result.success()
     }
 
-    private fun notify(updater: Updater, update: Update) {
+    /** Touching it opens the app, whose banner downloads the new version. */
+    private fun notify(update: Update) {
         val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        val open = PendingIntent.getActivity(applicationContext, 0, updater.download(update), flags)
+        val app = Intent(applicationContext, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        val open = PendingIntent.getActivity(applicationContext, 0, app, flags)
         val notification = NotificationCompat.Builder(applicationContext, ReveilApp.CHANNEL_REMINDER)
             .setSmallIcon(R.drawable.ic_alarm)
             .setContentTitle("Nouvelle version ${update.version} disponible")
-            .setContentText("Touchez pour la télécharger, puis ouvrez le fichier pour l'installer")
+            .setContentText("Touchez pour l'installer")
             .setContentIntent(open)
             .setAutoCancel(true)
             .build()
