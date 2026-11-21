@@ -3,6 +3,9 @@ name: NewPipe
 # Every morning: checks that YouTube still works with the current NewPipeExtractor, and moves to
 # its latest release when there is one. A new release that passes the tests is merged and published
 # right away (the phones then offer it); anything that fails opens an issue instead.
+# YouTube sometimes asks GitHub's servers to sign in ("confirm you're not a bot") because they are
+# datacenter machines: phones are not concerned, so that answer is "unknown", not "broken". Then no
+# issue is opened, and a new NewPipeExtractor is proposed as a pull request without being merged.
 on:
   schedule:
     - cron: "17 4 * * *"
@@ -44,27 +47,52 @@ jobs:
           sed -i "s/NewPipeExtractor:${{ steps.versions.outputs.current }}/NewPipeExtractor:${{ steps.versions.outputs.latest }}/" app/build.gradle.kts
       - name: YouTube still works
         id: smoke
-        run: ./gradlew --no-daemon :app:testDebugUnitTest --tests '*YouTubeSmokeTest*' -Psmoke
+        run: |
+          if ./gradlew --no-daemon :app:testDebugUnitTest --tests '*YouTubeSmokeTest*' -Psmoke; then
+            echo "result=ok" >> "$GITHUB_OUTPUT"
+          elif grep -rqs SignInConfirmNotBotException app/build/test-results/testDebugUnitTest; then
+            echo "result=bot-check" >> "$GITHUB_OUTPUT"
+            echo "::warning::YouTube a demandé aux serveurs GitHub de prouver qu'ils ne sont pas des robots : test impossible aujourd'hui (les téléphones ne sont pas concernés)."
+          else
+            exit 1
+          fi
       - name: Tests
         if: steps.versions.outputs.latest != steps.versions.outputs.current
         run: ./gradlew --no-daemon detekt :core:test :core:koverVerify :app:lintDebug :app:assembleRelease
       - name: Merge and publish
         if: steps.versions.outputs.latest != steps.versions.outputs.current
+        env:
+          VERIFIED: ${{ steps.smoke.outputs.result == 'ok' }}
         run: |
           code=$(sed -n 's/.*versionCode = \([0-9]*\).*/\1/p' app/build.gradle.kts)
           name=$(sed -n 's/.*versionName = "\(.*\)".*/\1/p' app/build.gradle.kts)
           next="${name%.*}.$(( ${name##*.} + 1 ))"
           sed -i "s/versionCode = $code/versionCode = $((code + 1))/; s/versionName = \"$name\"/versionName = \"$next\"/" app/build.gradle.kts
           branch="newpipe/${{ steps.versions.outputs.latest }}"
+          if git ls-remote --exit-code --heads origin "$branch" > /dev/null; then
+            echo "La pull request pour ${{ steps.versions.outputs.latest }} attend déjà d'être fusionnée."
+            exit 0
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b "$branch"
           git commit -am "NewPipeExtractor ${{ steps.versions.outputs.latest }} (version $next)"
           git push -u origin "$branch"
+          if [ "$VERIFIED" != "true" ]; then
+            gh pr create --base main --head "$branch" --title "NewPipeExtractor ${{ steps.versions.outputs.latest }} (à vérifier)" \
+              --body "Tests du projet verts, mais YouTube a refusé de répondre aux serveurs GitHub (vérification « robot »). À essayer sur un téléphone avant de fusionner : la fusion publie la version."
+            exit 0
+          fi
           gh pr create --base main --head "$branch" --title "NewPipeExtractor ${{ steps.versions.outputs.latest }}" \
             --body "Mise à jour automatique : YouTube fonctionne avec la nouvelle version (test réel + tests du projet verts)."
           gh pr merge "$branch" --squash --delete-branch
           gh workflow run release.yml --ref main
+      - name: Close the warning
+        if: steps.smoke.outputs.result == 'ok'
+        run: |
+          for number in $(gh issue list --state open --search "YouTube ne fonctionne plus in:title" --json number --jq '.[].number'); do
+            gh issue close "$number" --comment "Le test quotidien repasse : YouTube fonctionne de nouveau."
+          done
       - name: Warn
         if: failure()
         run: |
