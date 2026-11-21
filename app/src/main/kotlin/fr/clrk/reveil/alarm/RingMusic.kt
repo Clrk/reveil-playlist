@@ -37,7 +37,8 @@ class RingMusic(private val context: Context, playlistId: String?) {
             runBlocking { withTimeout(LIST_TIMEOUT_MS) { runInterruptible { playlist.tracks(id) } } }
         }
         val previousFirst = prefs.getString(LAST_FIRST, null)
-        val queue = WakeQueueBuilder(source, Random.Default).build(playlist, cache?.tracks().orEmpty(), previousFirst)
+        val queue = WakeQueueBuilder(source, Random.Default)
+            .build(playlist, cache?.tracks().orEmpty(), previousFirst, cache?.played().orEmpty())
         (queue.firstOrNull() as? WakeSource.Music)?.let { prefs.edit { putString(LAST_FIRST, it.track.id) } }
         WakeSession(queue)
     }

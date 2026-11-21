@@ -18,6 +18,7 @@ class MusicWorld {
     var known = setOf<String>()
     var playlist: PlaylistId? = PlaylistId("PLtest")
     var capacity = 0
+    var arrived = 0
     val random = Random(SEED)
     lateinit var now: ZonedDateTime
     lateinit var nextWake: ZonedDateTime
@@ -25,7 +26,7 @@ class MusicWorld {
     lateinit var prefetch: PrefetchPlan
 
     fun ring(previousFirst: String? = null): WakeSession {
-        session = WakeSession(WakeQueueBuilder(online, random).build(playlist, cached, previousFirst))
+        session = WakeSession(WakeQueueBuilder(online, random).build(playlist, cached, previousFirst, played))
         return session
     }
 

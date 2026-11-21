@@ -73,3 +73,10 @@ Fonctionnalité: Musique au réveil, en aléatoire, avec une sonnerie de secours
     Et l'alarme n'a pas de playlist
     Quand le réveil sonne
     Alors le réveil joue la sonnerie de secours
+
+  Scénario: Un morceau déjà entendu et gardé faute de remplaçant passe en fin de liste
+    Soit les morceaux en cache "A,B,C"
+    Et le morceau "A" a déjà été joué au réveil
+    Et le téléphone est hors-ligne
+    Quand le réveil sonne
+    Alors la file contient "B,C" puis "A" puis la sonnerie de secours
