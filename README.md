@@ -1,6 +1,6 @@
 # Réveil Playlist
 
-Un réveil, une playlist aléatoire, un vinyle qui tourne
+Un réveil, une playlist qui lit en aléatoire, un vinyle qui tourne
 
 https://github.com/user-attachments/assets/6b93ac74-6eba-49f8-918b-5fc5ff1955f3
 
