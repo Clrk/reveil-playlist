@@ -1,6 +1,6 @@
 # Réveil Playlist
 
-Un réveil Android qui vous réveille avec **votre playlist, en aléatoire**. La lumière du matin entre doucement dans la pièce pendant que le volume monte.
+Un réveil, une playlist aléatoire, un vinyle qui tourne
 
 https://github.com/user-attachments/assets/6b93ac74-6eba-49f8-918b-5fc5ff1955f3
 
