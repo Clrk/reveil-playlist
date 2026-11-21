@@ -2,10 +2,9 @@
 
 Un réveil Android qui vous réveille avec **votre playlist, en aléatoire**. La lumière du matin entre doucement dans la pièce pendant que le volume monte.
 
-<p align="center">
-  <img src="docs/sonnerie.gif" width="300" alt="L'écran de réveil : la lumière du matin entre dans la pièce, le bras se pose sur le disque">
-</p>
-<p align="center"><a href="docs/sonnerie.mp4">▶ Voir la vidéo</a></p>
+https://github.com/user-attachments/assets/6b93ac74-6eba-49f8-918b-5fc5ff1955f3
+
+
 
 ## Installer
 
