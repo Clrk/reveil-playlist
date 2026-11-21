@@ -11,10 +11,10 @@ https://github.com/user-attachments/assets/6b93ac74-6eba-49f8-918b-5fc5ff1955f3
 Il faut Android 9 ou plus.
 
 <p align="center">
-  <a href="../../releases/latest"><img src="docs/bouton-telecharger.svg" height="56" alt="Télécharger l'app"></a>
+  <a href="https://github.com/Clrk/reveil-playlist/releases/latest/download/reveil-playlist.apk"><img src="docs/bouton-telecharger.svg" height="56" alt="Télécharger l'app"></a>
 </p>
 
-1. Sur le téléphone, touchez **Télécharger**, puis le fichier **`.apk`**.
+1. Sur le téléphone, touchez **Télécharger l'app**, puis **« Télécharger quand même »**.
 2. Ouvrez-le. Si Android bloque, activez **« Autoriser cette source »**.
 3. Si Play Protect alerte, touchez **« Plus de détails »** puis **« Installer quand même »**.
 4. Ouvrez l'app et touchez **« Autoriser »** sur chaque ligne.
