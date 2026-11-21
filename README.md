@@ -9,13 +9,76 @@ Un réveil Android qui vous réveille avec **votre playlist YouTube Music, en al
 
 ## Installer
 
-Il faut Android 9 ou plus.
+L'app n'est pas sur le Play Store : on l'installe à la main, une seule fois. Comptez cinq minutes. Il faut un téléphone **Android 9 ou plus récent**.
 
-1. Téléchargez le dernier `reveil-playlist-X.Y.Z.apk` dans les [Releases](../../releases/latest).
-2. Ouvrez-le sur le téléphone et autorisez l'installation depuis votre navigateur ou gestionnaire de fichiers.
-3. Au premier lancement, autorisez les notifications et l'affichage plein écran : c'est ce qui permet au réveil de sonner écran verrouillé.
+> Les écrans ci-dessous sont des illustrations : les mots exacts changent un peu selon la marque du téléphone (Samsung, Xiaomi, Pixel…) et la version d'Android, mais les étapes restent les mêmes.
 
-L'app n'est pas sur le Play Store (elle lit YouTube Music via [NewPipeExtractor](https://github.com/TeamNewPipe/NewPipeExtractor)). Elle **prévient quand une nouvelle version sort** : un bandeau « Installer » apparaît en haut de la liste.
+<p align="center">
+  <img src="docs/installer-1-telecharger.png" width="200" alt="Étape 1 : télécharger le fichier .apk depuis la page des versions">
+  <img src="docs/installer-2-autoriser.png" width="200" alt="Étape 2 : autoriser le navigateur à installer des applications, puis Installer">
+  <img src="docs/installer-3-play-protect.png" width="200" alt="Étape 3 : Play Protect, Plus de détails puis Installer quand même">
+</p>
+
+### 1. Télécharger l'app
+
+1. **Sur le téléphone**, ouvrez la [page de la dernière version](../../releases/latest) dans votre navigateur (Chrome, Firefox, Samsung Internet…).
+2. Descendez jusqu'à la partie **Assets** et touchez le fichier **`reveil-playlist-X.Y.Z.apk`** (pas « Source code »).
+3. Le navigateur prévient que ce type de fichier peut être dangereux : touchez **« Télécharger quand même »**. C'est le message habituel pour toute app installée hors du Play Store.
+
+### 2. Autoriser votre navigateur à installer l'app
+
+1. Une fois le téléchargement fini, touchez **« Ouvrir »** dans la notification ou en bas du navigateur. Vous pouvez aussi retrouver le fichier dans l'app **Fichiers**, dossier **Téléchargements**.
+2. Android répond que, par sécurité, il n'installe pas d'applications provenant de cette source. Touchez **« Paramètres »**.
+3. Activez **« Autoriser cette source »** (selon le téléphone : « Autoriser depuis cette source » ou « Installer des applis inconnues »), puis revenez en arrière avec la flèche.
+4. Touchez **« Installer »**.
+
+Cette autorisation ne vaut que pour le navigateur utilisé. Vous pouvez la retirer après l'installation dans **Paramètres › Applications › Accès spéciaux › Installer des applis inconnues**, mais il faudra la redonner à chaque mise à jour.
+
+### 3. Passer l'avertissement Play Protect
+
+Play Protect, l'antivirus de Google, ne connaît pas les apps installées hors du Play Store et peut afficher **« Bloquée par Play Protect »** ou « Application inconnue ».
+
+1. Touchez **« Plus de détails »** (ou la petite flèche) pour déplier le message.
+2. Touchez **« Installer quand même »**.
+3. S'il propose d'**envoyer l'app pour analyse**, vous pouvez accepter ou refuser : ça ne change rien à l'installation.
+
+Le code de l'app est entièrement public dans ce dépôt, et chaque version est construite et signée automatiquement par GitHub à partir de ce code.
+
+### 4. Premier lancement : trois autorisations
+
+<p align="center">
+  <img src="docs/bienvenue.png" width="220" alt="Écran d'accueil : Notifications, Plein écran, Batterie, Météo du matin">
+</p>
+
+Ouvrez **Réveil Playlist**. L'écran d'accueil liste ce qu'Android doit autoriser pour que le réveil sonne à coup sûr. Touchez **« Autoriser »** sur chaque ligne : une coche ✓ apparaît quand c'est fait.
+
+| Ligne | Pourquoi | Ce que vous voyez |
+| --- | --- | --- |
+| **Notifications** | Pour sonner, et vous rappeler le réveil une heure avant. | Une fenêtre Android : touchez « Autoriser ». |
+| **Plein écran** (Android 14 et plus) | Pour afficher le réveil par-dessus l'écran verrouillé. | Les réglages de l'app s'ouvrent : activez l'autorisation de plein écran, puis revenez. |
+| **Batterie** | Pour préparer vos morceaux la veille au soir, téléphone en veille. | Une fenêtre demande d'ignorer l'optimisation de la batterie : touchez « Autoriser ». |
+| **Météo du matin** | Facultatif : le temps du matin à l'heure du réveil. | Tapez le nom de votre ville. |
+
+Touchez ensuite **« C'est parti »** (ou « Continuer » s'il manque une autorisation). Si une autorisation manque plus tard, un bandeau en haut de la liste des réveils le signale : touchez-le pour la donner.
+
+Sur certains téléphones (Xiaomi, Huawei, Oppo, OnePlus…), l'économie d'énergie de la marque peut en plus fermer les apps en arrière-plan. Si les musiques ne sont jamais prêtes le matin, cherchez « Réveil Playlist » dans **Paramètres › Batterie** et choisissez « Aucune restriction » ou « Pas d'optimisation ». Le réveil, lui, sonne de toute façon.
+
+### 5. Mettre à jour
+
+L'app vérifie toute seule s'il existe une nouvelle version, et ne s'installe **jamais** sans vous.
+
+1. Un bandeau **« Nouvelle version X disponible · Installer »** apparaît en haut de la liste des réveils, avec une notification discrète.
+2. Touchez **« Installer »** : le navigateur s'ouvre et télécharge la nouvelle version.
+3. Ouvrez le fichier comme la première fois, puis touchez **« Mettre à jour »**. Si Play Protect se manifeste, refaites l'étape 3.
+
+Vos réveils, vos playlists et vos réglages sont conservés. Inutile de désinstaller l'ancienne version.
+
+### En cas de souci
+
+- **« Application non installée »** : vérifiez qu'il reste de la place sur le téléphone, puis retéléchargez le fichier (il était peut-être incomplet).
+- **« Le package semble non valide »** ou conflit avec une version existante : très vieilles versions seulement (avant 0.8.0), signées autrement. Désinstallez l'ancienne app puis installez la nouvelle (vos réveils seront à recréer).
+- **Le fichier ne s'ouvre pas** : ouvrez l'app **Fichiers › Téléchargements** et touchez le `.apk` à partir de là.
+- **Le réveil ne s'affiche pas écran verrouillé** : vérifiez la ligne « Plein écran » (bandeau en haut de la liste).
 
 ## Comment ça marche
 
@@ -79,7 +142,7 @@ La pièce est dans la nuit quand la musique commence, tout bas. Le volume monte,
   <img src="docs/mise-a-jour.png" width="200" alt="Bandeau de nouvelle version">
 </p>
 
-L'app interroge les releases de ce dépôt. Quand une nouvelle version sort, un bandeau « Installer » apparaît en haut de la liste et une notification discrète la signale. Un geste ouvre le téléchargement dans le navigateur, puis Android l'installe comme la première fois. L'app ne demande pas la permission d'installer des applications : Play Protect bloque les apps qui l'ont.
+L'app interroge les releases de ce dépôt. Quand une nouvelle version sort, un bandeau « Installer » apparaît en haut de la liste et une notification discrète la signale. Un geste ouvre le téléchargement dans le navigateur, puis Android l'installe comme la première fois (voir [Mettre à jour](#5-mettre-à-jour)). L'app ne demande pas la permission d'installer des applications : Play Protect bloque les apps qui l'ont.
 
 ## Contribuer
 
