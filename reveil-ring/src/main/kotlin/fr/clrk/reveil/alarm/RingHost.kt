@@ -7,6 +7,7 @@ import android.content.Context
 import android.os.Build
 import fr.clrk.reveil.core.Alarm
 import fr.clrk.reveil.core.AlarmService
+import fr.clrk.reveil.core.LibraryRules
 import fr.clrk.reveil.core.PlaylistSource
 import fr.clrk.reveil.core.StreamResolver
 import fr.clrk.reveil.core.WakeSource
@@ -42,6 +43,9 @@ interface RingHost {
 
     /** Called after any alarm change made by the ringing machinery (ring, snooze, skip, reboot). */
     fun alarmsChanged()
+
+    /** How many tracks the device keeps, how long and in how much space; the phone's rules by default. */
+    val library: LibraryRules get() = LibraryRules()
 
     /** Called when the evening download starts, before the tracks are fetched. */
     fun beforePrefetch() = Unit
