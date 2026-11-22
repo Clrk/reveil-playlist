@@ -4,6 +4,8 @@ name: Check
 on:
   pull_request:
     branches: [main]
+  # Started by newpipe.yml on the branch of the update it proposes.
+  workflow_dispatch:
 
 jobs:
   check:
