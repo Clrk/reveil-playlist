@@ -60,6 +60,16 @@ L'`Application` de l'hôte implémente `fr.clrk.reveil.alarm.RingHost` : les ala
 
 L'hôte crée les canaux de notification avec `RingChannels.create(context, nomSonnerie, nomRappel)`. Le service, les receivers et leurs permissions arrivent par le manifeste de `reveil-ring`.
 
+### Sonnerie de secours
+
+La chaîne de secours joue la sonnerie d'alarme du téléphone, puis l'alarme système si le lecteur échoue. Un appareil qui n'est pas un téléphone fournit sa propre sonnerie, par exemple un fichier `res/raw` de son APK :
+
+```kotlin
+override val fallbackSound = Uri.parse("android.resource://$packageName/${R.raw.sonnerie}")
+```
+
+Elle remplace alors les deux sons du téléphone : d'abord jouée par le lecteur, puis par `MediaPlayer` en boucle si le lecteur a échoué.
+
 ### Bibliothèque locale
 
 Par défaut, `RingHost.library` vaut `LibraryRules()` : 15 morceaux renouvelés chaque soir, comme le téléphone. Un hôte peut garder plus de morceaux, plus longtemps, dans une taille maximale :

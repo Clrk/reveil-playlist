@@ -129,8 +129,10 @@ class RingService : Service() {
         }
     }
 
+    /** The host's fallback sound, else the phone's alarm ringtone. */
     private fun playRingtone() {
-        val uri = RingtoneManager.getActualDefaultRingtoneUri(this, RingtoneManager.TYPE_ALARM)
+        val uri = host.fallbackSound
+            ?: RingtoneManager.getActualDefaultRingtoneUri(this, RingtoneManager.TYPE_ALARM)
             ?: android.provider.Settings.System.DEFAULT_ALARM_ALERT_URI
         player.setMediaItem(MediaItem.fromUri(uri))
         player.repeatMode = Player.REPEAT_MODE_ONE
@@ -145,8 +147,9 @@ class RingService : Service() {
         if (session.lastResort) lastResortRingtone() else playNext()
     }
 
-    /** ExoPlayer could not even play the system sound: let the platform ring. */
+    /** ExoPlayer could not even play the fallback sound: let the platform ring it, or the system alarm. */
     private fun lastResortRingtone() {
+        host.fallbackSound?.let { return LoopingAlarm.play(this, it) }
         val uri = android.provider.Settings.System.DEFAULT_ALARM_ALERT_URI
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return LoopingAlarm.play(this, uri)
         RingtoneManager.getRingtone(this, uri)?.apply {
