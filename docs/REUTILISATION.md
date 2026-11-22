@@ -58,7 +58,7 @@ YouTubeHealth.init(monStockage) // HealthStore : garde le nombre de pages illisi
 
 L'`Application` de l'hôte implémente `fr.clrk.reveil.alarm.RingHost` : les alarmes (`AlarmService`), la source des playlists, la résolution des morceaux en flux, le client qui télécharge les morceaux, l'écran de sonnerie, l'écran d'accueil, l'icône des notifications, et un `RingDisplay` qui suit la sonnerie pour l'écran.
 
-L'hôte crée les canaux de notification `RingChannels.RING` et `RingChannels.REMINDER`. Le service, les receivers et leurs permissions arrivent par le manifeste de `reveil-ring`.
+L'hôte crée les canaux de notification avec `RingChannels.create(context, nomSonnerie, nomRappel)`. Le service, les receivers et leurs permissions arrivent par le manifeste de `reveil-ring`.
 
 ## Réponses pour le projet Bonjour V2
 
@@ -73,7 +73,9 @@ Aucune raison n'est écrite : `minSdk = 28` est là depuis le premier commit (15
 | 26 | `NotificationChannel` : les canaux de sonnerie et de rappel n'existent pas | `app`, `ReveilApp` |
 | 26 | Icône adaptative (`<adaptive-icon>`) : la compilation échoue | `app`, `mipmap-anydpi` |
 
-Le reste passe déjà sous l'API 24 : `ContextCompat.startForegroundService` et `ServiceCompat.startForeground` choisissent la bonne méthode, `java.time` est fourni par `coreLibraryDesugaring` (déjà activé), `setAlarmClock` existe depuis l'API 21 et `setExactAndAllowWhileIdle` depuis l'API 23. Le seul blocage dans `reveil-ring` est donc `Ringtone.setLooping`. Le passage de `reveil-ring` en minSdk 24 est le point 5 de la demande ; l'app reveil-playlist reste en minSdk 28.
+Le reste passe déjà sous l'API 24 : `ContextCompat.startForegroundService` et `ServiceCompat.startForeground` choisissent la bonne méthode, `java.time` est fourni par `coreLibraryDesugaring` (déjà activé), `setAlarmClock` existe depuis l'API 21 et `setExactAndAllowWhileIdle` depuis l'API 23. Le seul blocage dans `reveil-ring` est donc `Ringtone.setLooping`. `reveil-ring` est en minSdk 24 : sous Android 9, la dernière sonnerie de secours boucle avec `MediaPlayer` au lieu de `Ringtone`, et `RingChannels.create` ne fait rien sous Android 8 (pas de canaux). L'app reveil-playlist reste en minSdk 28.
+
+L'app hôte active `coreLibraryDesugaring` (`com.android.tools:desugar_jdk_libs_nio`) : `reveil-core` utilise `java.time`, et NewPipeExtractor des API Java 8 absentes d'Android 7.
 
 ### Quels clients YouTube NewPipeExtractor utilise-t-il, et faut-il un PO token ?
 

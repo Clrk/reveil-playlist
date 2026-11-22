@@ -1,7 +1,10 @@
 package fr.clrk.reveil.alarm
 
 import android.app.Activity
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.Context
+import android.os.Build
 import fr.clrk.reveil.core.Alarm
 import fr.clrk.reveil.core.AlarmService
 import fr.clrk.reveil.core.PlaylistSource
@@ -61,10 +64,21 @@ interface RingDisplay {
     fun hide()
 }
 
-/** Notification channels the ringing machinery posts on; the host creates them. */
+/** Notification channels the ringing machinery posts on. */
 object RingChannels {
     const val RING = "ring"
     const val REMINDER = "reminder"
+
+    /** Creates both channels, named in the host's words; nothing to do below Android 8, which has no channels. */
+    fun create(context: Context, ringName: String, reminderName: String) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        val ring = NotificationChannel(RING, ringName, NotificationManager.IMPORTANCE_HIGH).apply {
+            setSound(null, null)
+            setBypassDnd(true)
+        }
+        val reminder = NotificationChannel(REMINDER, reminderName, NotificationManager.IMPORTANCE_LOW)
+        context.getSystemService(NotificationManager::class.java).createNotificationChannels(listOf(ring, reminder))
+    }
 }
 
 val Context.ringHost: RingHost get() = applicationContext as RingHost
