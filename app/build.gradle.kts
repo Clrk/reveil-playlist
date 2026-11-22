@@ -13,8 +13,8 @@ android {
         applicationId = "fr.clrk.reveil"
         minSdk = 28
         targetSdk = 36
-        versionCode = 29
-        versionName = "0.9.13"
+        versionCode = 30
+        versionName = "0.9.14"
     }
 
     buildTypes {
