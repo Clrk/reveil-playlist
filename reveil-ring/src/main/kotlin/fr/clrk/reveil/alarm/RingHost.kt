@@ -4,6 +4,7 @@ import android.app.Activity
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
+import android.net.Uri
 import android.os.Build
 import fr.clrk.reveil.core.Alarm
 import fr.clrk.reveil.core.AlarmService
@@ -43,6 +44,12 @@ interface RingHost {
 
     /** Called after any alarm change made by the ringing machinery (ring, snooze, skip, reboot). */
     fun alarmsChanged()
+
+    /**
+     * The host's own fallback sound (say `android.resource://…/raw/sonnerie`), for a device with no phone ringtone.
+     * Null keeps the phone's: its alarm ringtone, then the system alarm if even that cannot play.
+     */
+    val fallbackSound: Uri? get() = null
 
     /** How many tracks the device keeps, how long and in how much space; the phone's rules by default. */
     val library: LibraryRules get() = LibraryRules()
