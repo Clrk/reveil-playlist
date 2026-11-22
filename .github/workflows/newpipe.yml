@@ -1,12 +1,13 @@
 name: NewPipe
 
-# Every morning: checks that YouTube still works with the current NewPipeExtractor, and moves to
-# its latest release when there is one. A new release that passes the tests is merged and published
-# right away (the phones then offer it); anything that fails opens an issue instead.
+# Every morning: checks that YouTube still works with the current NewPipeExtractor, and proposes
+# its latest release when there is one. A new release that passes the tests opens a pull request,
+# never merged automatically: it is published once someone has reviewed and merged it.
+# Anything that fails opens an issue instead.
 # YouTube sometimes asks GitHub's servers to sign in ("confirm you're not a bot") because they are
 # datacenter machines: phones are not concerned, so that answer is "unknown", not "broken". Then no
-# issue is opened, and a new NewPipeExtractor is still merged and published once the project tests
-# pass: search and playlist reading were checked, and keeping NewPipe up to date is the real repair.
+# issue is opened, and a new NewPipeExtractor is still proposed once the project tests pass:
+# keeping NewPipe up to date is the real repair.
 on:
   schedule:
     - cron: "17 4 * * *"
@@ -60,7 +61,7 @@ jobs:
       - name: Tests
         if: steps.versions.outputs.latest != steps.versions.outputs.current
         run: ./gradlew --no-daemon gate :app:assembleRelease
-      - name: Merge and publish
+      - name: Propose the update for review
         if: steps.versions.outputs.latest != steps.versions.outputs.current
         env:
           SMOKE: ${{ steps.smoke.outputs.result }}
@@ -71,7 +72,7 @@ jobs:
           sed -i "s/versionCode = $code/versionCode = $((code + 1))/; s/versionName = \"$name\"/versionName = \"$next\"/" app/build.gradle.kts
           branch="newpipe/${{ steps.versions.outputs.latest }}"
           if git ls-remote --exit-code --heads origin "$branch" > /dev/null; then
-            echo "La pull request pour ${{ steps.versions.outputs.latest }} attend déjà d'être fusionnée."
+            echo "La pull request pour ${{ steps.versions.outputs.latest }} attend déjà d'être relue."
             exit 0
           fi
           git config user.name "github-actions[bot]"
@@ -79,13 +80,14 @@ jobs:
           git checkout -b "$branch"
           git commit -am "NewPipeExtractor ${{ steps.versions.outputs.latest }} (version $next)"
           git push -u origin "$branch"
-          body="Mise à jour automatique : YouTube fonctionne avec la nouvelle version (test réel + tests du projet verts)."
+          body="Proposition automatique : YouTube fonctionne avec la nouvelle version (test réel + tests du projet verts)."
           if [ "$SMOKE" = "bot-check" ]; then
-            body="Mise à jour automatique : tests du projet verts. YouTube a refusé de répondre aux serveurs GitHub (vérification « robot »), les téléphones ne sont pas concernés."
+            body="Proposition automatique : tests du projet verts. YouTube a refusé de répondre aux serveurs GitHub (vérification « robot »), les téléphones ne sont pas concernés."
           fi
+          body="$body À relire avant de fusionner : la fusion publie la version $next, que les téléphones proposeront."
           gh pr create --base main --head "$branch" --title "NewPipeExtractor ${{ steps.versions.outputs.latest }}" --body "$body"
-          gh pr merge "$branch" --squash --delete-branch
-          gh workflow run release.yml --ref main
+          # A pull request opened with this workflow's token does not start check.yml by itself.
+          gh workflow run check.yml --ref "$branch"
       - name: Close the warning
         if: steps.smoke.outputs.result == 'ok'
         run: |
