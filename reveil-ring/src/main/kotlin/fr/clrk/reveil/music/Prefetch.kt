@@ -47,6 +47,7 @@ class PrefetchWorker(context: Context, params: WorkerParameters) : CoroutineWork
         val stored = store(plan.download, cache)
         plan.evictAfter(stored).forEach { cache.remove(it.id) }
         rules.overSize(cache.stored()).forEach(cache::remove)
+        cache.covers.storeMissing(cache.tracks())
         if (cache.played().size >= tracks.size - rules.tracks) cache.forgetPlayed()
         val report = PrefetchOutcome.of(plan.download.size, stored, byHand)
         if (report.upToDate) cache.remember(tracks)

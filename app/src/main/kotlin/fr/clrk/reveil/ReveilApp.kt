@@ -7,6 +7,8 @@ import fr.clrk.reveil.alarm.FileTextStore
 import fr.clrk.reveil.alarm.RingChannels
 import fr.clrk.reveil.alarm.RingHost
 import fr.clrk.reveil.alarm.RingScreen
+import fr.clrk.reveil.alarm.RingState
+import fr.clrk.reveil.core.Track
 import fr.clrk.reveil.core.AlarmRepository
 import fr.clrk.reveil.core.AlarmService
 import fr.clrk.reveil.core.FallbackPlaylistSource
@@ -55,6 +57,8 @@ class ReveilApp : Application(), RingHost {
 
     /** The evening download also fetches tomorrow's weather. */
     override fun beforePrefetch() = WeatherRepository(this).refresh()
+
+    override fun coverOf(track: Track) = RingState.coverOf(track)
 
     /** YouTube's health survives restarts in the same preferences as before. */
     private inner class PrefsHealthStore : HealthStore {

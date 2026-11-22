@@ -6,8 +6,8 @@ import fr.clrk.reveil.core.PlaylistId
 import fr.clrk.reveil.core.StoredTrack
 import fr.clrk.reveil.core.Track
 import fr.clrk.reveil.alarm.ringHost
-import okhttp3.Request
 import org.json.JSONObject
+import okhttp3.Request
 import java.io.File
 import java.io.IOException
 import java.time.Instant
@@ -17,6 +17,10 @@ class TrackCache(private val context: Context, playlist: PlaylistId) {
     private val dir = folder(context, playlist).apply { mkdirs() }
     private val index = File(dir, "index.json")
     private val prefs = prefs(context, playlist)
+    private val fetch = Fetch(context)
+
+    /** The covers of the kept tracks, for the ringing screen offline. */
+    val covers = CoverStore(dir, fetch)
 
     fun tracks(): List<Track> = titles().filter { file(it.key).exists() }.map { Track(it.key, it.value) }
 
@@ -24,13 +28,15 @@ class TrackCache(private val context: Context, playlist: PlaylistId) {
 
     fun store(track: Track, streamUrl: String) {
         val temp = File(dir, "${track.id}.part")
-        download(streamUrl, temp)
+        fetch.ranged(streamUrl, temp)
         temp.renameTo(file(track.id))
         writeTitles(titles() + (track.id to track.title))
+        covers.store(track)
     }
 
     fun remove(id: String) {
         file(id).delete()
+        covers.remove(id)
         writeTitles(titles() - id)
     }
 
@@ -47,6 +53,7 @@ class TrackCache(private val context: Context, playlist: PlaylistId) {
 
     private fun file(id: String) = File(dir, "$id.audio")
 
+
     private fun titles(): Map<String, String> {
         if (!index.exists()) return emptyMap()
         val json = JSONObject(index.readText())
@@ -55,28 +62,9 @@ class TrackCache(private val context: Context, playlist: PlaylistId) {
 
     private fun writeTitles(titles: Map<String, String>) = index.writeText(JSONObject(titles).toString())
 
-    /** YouTube throttles big responses: fetch the file in ranged chunks. */
-    private fun download(url: String, target: File) = target.outputStream().use { out ->
-        var start = 0L
-        do {
-            val bytes = chunk(url, start)
-            out.write(bytes)
-            start += bytes.size
-        } while (bytes.size.toLong() == CHUNK)
-    }
-
-    private fun chunk(url: String, start: Long): ByteArray {
-        val request = Request.Builder().url(url).header("Range", "bytes=$start-${start + CHUNK - 1}").build()
-        return context.ringHost.downloads.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) throw IOException("HTTP ${response.code}")
-            response.body.bytes()
-        }
-    }
-
     companion object {
         private const val PLAYED = "played"
         private const val KNOWN = "known"
-        private const val CHUNK = 1_000_000L
 
         private fun folder(context: Context, playlist: PlaylistId) = File(context.filesDir, "tracks/${playlist.value}")
 
@@ -95,4 +83,28 @@ class TrackCache(private val context: Context, playlist: PlaylistId) {
 fun TrackCache.stored(): List<StoredTrack> = tracks().map { track ->
     val file = file(track)
     StoredTrack(track.id, file.length(), Instant.ofEpochMilli(file.lastModified()))
+}
+
+/** Downloads through the host's client. */
+internal class Fetch(private val context: Context) {
+    val host get() = context.ringHost
+
+    fun get(request: Request): ByteArray = host.downloads.newCall(request).execute().use { response ->
+        if (!response.isSuccessful) throw IOException("HTTP ${response.code}")
+        response.body.bytes()
+    }
+
+    /** YouTube throttles big responses: fetch the file in ranged chunks. */
+    fun ranged(url: String, target: File) = target.outputStream().use { out ->
+        var start = 0L
+        do {
+            val bytes = get(Request.Builder().url(url).header("Range", "bytes=$start-${start + CHUNK - 1}").build())
+            out.write(bytes)
+            start += bytes.size
+        } while (bytes.size.toLong() == CHUNK)
+    }
+
+    private companion object {
+        const val CHUNK = 1_000_000L
+    }
 }

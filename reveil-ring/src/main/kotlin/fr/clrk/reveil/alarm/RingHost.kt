@@ -11,6 +11,7 @@ import fr.clrk.reveil.core.AlarmService
 import fr.clrk.reveil.core.LibraryRules
 import fr.clrk.reveil.core.PlaylistSource
 import fr.clrk.reveil.core.StreamResolver
+import fr.clrk.reveil.core.Track
 import fr.clrk.reveil.core.WakeSource
 import okhttp3.OkHttpClient
 
@@ -54,6 +55,9 @@ interface RingHost {
     /** How many tracks the device keeps, how long and in how much space; the phone's rules by default. */
     val library: LibraryRules get() = LibraryRules()
 
+    /** Address of the track's cover, kept next to its audio so the ringing screen shows it offline; null for none. */
+    fun coverOf(track: Track): String? = null
+
     /** Called when the evening download starts, before the tracks are fetched. */
     fun beforePrefetch() = Unit
 }
@@ -62,7 +66,8 @@ interface RingHost {
 interface RingDisplay {
     fun show(alarm: Alarm?)
 
-    fun playing(source: WakeSource)
+    /** [cover] is the cover kept on the device for this track, null when there is none (stream, or not fetched). */
+    fun playing(source: WakeSource, cover: Uri?)
 
     /** The track is over (or failed). */
     fun ended()

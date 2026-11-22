@@ -118,7 +118,7 @@ class RingService : Service() {
         val current = session.current
         loading?.cancel()
         session.asked(elapsed)
-        display.playing(current)
+        display.playing(current, music?.coverOf(current))
         if (current == WakeSource.Ringtone) return playRingtone()
         val track = (current as WakeSource.Music)
         loading = scope.launch {
