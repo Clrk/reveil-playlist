@@ -30,7 +30,7 @@ class AlarmRepository(private val store: TextStore) {
 }
 
 @Serializable
-private data class AlarmRecord(
+internal data class AlarmRecord(
     val id: String,
     val minuteOfDay: Int,
     val days: List<Int>,

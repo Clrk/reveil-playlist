@@ -50,6 +50,10 @@ YouTubeHealth.init(monStockage) // HealthStore : garde le nombre de pages illisi
 
 `reveil-youtube` fournit `YouTubeSource()`. Une autre source (yt-dlp côté serveur) implémente simplement `MusicSource`.
 
+### Échanger des alarmes entre deux apps
+
+`AlarmFormat.encode(alarmes)` écrit `{"format":1,"alarms":[…]}`. `AlarmFormat.decode(texte)` rend `Alarms(…)`, `TooNew(format, known)` quand le message vient d'une version plus récente, ou `Unreadable`. Un champ inconnu est ignoré. Le texte exact de la version 1 est figé par `AlarmFormatContractTest` et les fichiers de `reveil-core/src/test/resources/contracts` : si l'un d'eux doit changer, le format a changé et `AlarmFormat.VERSION` monte.
+
 ### Sonnerie : implémenter `RingHost`
 
 L'`Application` de l'hôte implémente `fr.clrk.reveil.alarm.RingHost` : les alarmes (`AlarmService`), la source des playlists, la résolution des morceaux en flux, le client qui télécharge les morceaux, l'écran de sonnerie, l'écran d'accueil, l'icône des notifications, et un `RingDisplay` qui suit la sonnerie pour l'écran.
