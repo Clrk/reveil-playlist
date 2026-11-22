@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.media.RingtoneManager
+import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
 import android.os.SystemClock
@@ -146,7 +147,9 @@ class RingService : Service() {
 
     /** ExoPlayer could not even play the system sound: let the platform ring. */
     private fun lastResortRingtone() {
-        RingtoneManager.getRingtone(this, android.provider.Settings.System.DEFAULT_ALARM_ALERT_URI)?.apply {
+        val uri = android.provider.Settings.System.DEFAULT_ALARM_ALERT_URI
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return LoopingAlarm.play(this, uri)
+        RingtoneManager.getRingtone(this, uri)?.apply {
             isLooping = true
             play()
         }

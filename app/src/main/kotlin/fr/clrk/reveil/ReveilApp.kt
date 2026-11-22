@@ -1,8 +1,6 @@
 package fr.clrk.reveil
 
 import android.app.Application
-import android.app.NotificationChannel
-import android.app.NotificationManager
 import androidx.core.content.edit
 import fr.clrk.reveil.alarm.AndroidAlarmScheduler
 import fr.clrk.reveil.alarm.FileTextStore
@@ -48,7 +46,7 @@ class ReveilApp : Application(), RingHost {
         YouTubeHealth.init(PrefsHealthStore())
         val store = FileTextStore(File(noBackupFilesDir, "alarms.json"))
         alarms = AlarmService(AlarmRepository(store), AndroidAlarmScheduler(this, homeScreen)) { ZonedDateTime.now() }
-        createChannel()
+        RingChannels.create(this, "Réveil", "Rappel avant le réveil")
         UpdateWorker.schedule(this)
     }
 
@@ -57,15 +55,6 @@ class ReveilApp : Application(), RingHost {
 
     /** The evening download also fetches tomorrow's weather. */
     override fun beforePrefetch() = WeatherRepository(this).refresh()
-
-    private fun createChannel() {
-        val channel = NotificationChannel(RingChannels.RING, "Réveil", NotificationManager.IMPORTANCE_HIGH).apply {
-            setSound(null, null)
-            setBypassDnd(true)
-        }
-        val reminder = NotificationChannel(RingChannels.REMINDER, "Rappel avant le réveil", NotificationManager.IMPORTANCE_LOW)
-        getSystemService(NotificationManager::class.java).createNotificationChannels(listOf(channel, reminder))
-    }
 
     /** YouTube's health survives restarts in the same preferences as before. */
     private inner class PrefsHealthStore : HealthStore {
