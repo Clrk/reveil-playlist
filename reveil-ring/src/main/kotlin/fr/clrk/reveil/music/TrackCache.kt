@@ -3,12 +3,14 @@ package fr.clrk.reveil.music
 import android.content.Context
 import androidx.core.content.edit
 import fr.clrk.reveil.core.PlaylistId
+import fr.clrk.reveil.core.StoredTrack
 import fr.clrk.reveil.core.Track
 import fr.clrk.reveil.alarm.ringHost
 import okhttp3.Request
 import org.json.JSONObject
 import java.io.File
 import java.io.IOException
+import java.time.Instant
 
 /** Audio files pre-downloaded for one playlist, plus the tracks already heard at wake-up. */
 class TrackCache(private val context: Context, playlist: PlaylistId) {
@@ -27,9 +29,9 @@ class TrackCache(private val context: Context, playlist: PlaylistId) {
         writeTitles(titles() + (track.id to track.title))
     }
 
-    fun remove(track: Track) {
-        file(track.id).delete()
-        writeTitles(titles() - track.id)
+    fun remove(id: String) {
+        file(id).delete()
+        writeTitles(titles() - id)
     }
 
     fun played(): Set<String> = prefs.getStringSet(PLAYED, emptySet()).orEmpty()
@@ -87,4 +89,10 @@ class TrackCache(private val context: Context, playlist: PlaylistId) {
             prefs(context, playlist).edit { clear() }
         }
     }
+}
+
+/** Size and arrival time of each kept track, for the host's library rules. */
+fun TrackCache.stored(): List<StoredTrack> = tracks().map { track ->
+    val file = file(track)
+    StoredTrack(track.id, file.length(), Instant.ofEpochMilli(file.lastModified()))
 }

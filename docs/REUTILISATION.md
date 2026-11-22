@@ -60,6 +60,16 @@ L'`Application` de l'hôte implémente `fr.clrk.reveil.alarm.RingHost` : les ala
 
 L'hôte crée les canaux de notification avec `RingChannels.create(context, nomSonnerie, nomRappel)`. Le service, les receivers et leurs permissions arrivent par le manifeste de `reveil-ring`.
 
+### Bibliothèque locale
+
+Par défaut, `RingHost.library` vaut `LibraryRules()` : 15 morceaux renouvelés chaque soir, comme le téléphone. Un hôte peut garder plus de morceaux, plus longtemps, dans une taille maximale :
+
+```kotlin
+override val library = LibraryRules(tracks = 80, keepFor = Duration.ofDays(28), maxBytes = 2_000_000_000)
+```
+
+Un morceau plus ancien que `keepFor` est remplacé seulement quand un nouveau est arrivé, comme un morceau déjà entendu. Au-delà de `maxBytes`, les plus anciens morceaux partent après le téléchargement du soir.
+
 ## Réponses pour le projet Bonjour V2
 
 ### Pourquoi minSdk 28 ?

@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.Duration
+import java.time.Instant
 import java.time.ZonedDateTime
 import java.util.concurrent.TimeUnit
 import kotlin.random.Random
@@ -38,11 +39,15 @@ class PrefetchWorker(context: Context, params: WorkerParameters) : CoroutineWork
         refresh(TrackCache(applicationContext, playlist), tracks)
     }
 
+    /** Tracks kept too long are renewed like tracks already heard: only once a new one has arrived. */
     private suspend fun refresh(cache: TrackCache, tracks: List<Track>): Result {
-        val plan = PrefetchPolicy.plan(tracks, cache.tracks(), cache.played(), CAPACITY, Random.Default, cache.known())
+        val rules = applicationContext.ringHost.library
+        val renew = cache.played() + rules.expired(cache.stored(), Instant.now())
+        val plan = PrefetchPolicy.plan(tracks, cache.tracks(), renew, rules.tracks, Random.Default, cache.known())
         val stored = store(plan.download, cache)
-        plan.evictAfter(stored).forEach(cache::remove)
-        if (cache.played().size >= tracks.size - CAPACITY) cache.forgetPlayed()
+        plan.evictAfter(stored).forEach { cache.remove(it.id) }
+        rules.overSize(cache.stored()).forEach(cache::remove)
+        if (cache.played().size >= tracks.size - rules.tracks) cache.forgetPlayed()
         val report = PrefetchOutcome.of(plan.download.size, stored, byHand)
         if (report.upToDate) cache.remember(tracks)
         return result(report)
@@ -69,7 +74,6 @@ class PrefetchWorker(context: Context, params: WorkerParameters) : CoroutineWork
         const val KEY_NOW = "now"
         const val KEY_DONE = "done"
         const val KEY_TOTAL = "total"
-        const val CAPACITY = 15
     }
 }
 
