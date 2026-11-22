@@ -44,6 +44,12 @@ YouTube.init(monClientOkHttp)
 YouTubeHealth.init(monStockage) // HealthStore : garde le nombre de pages illisibles de suite
 ```
 
+### « Mets tel morceau » : recherche et résolution à la demande
+
+`reveil-core` définit le port `MusicSource` : la lecture d'une playlist (`PlaylistSource`), la recherche d'un titre en texte libre (`TrackSearch`) et la résolution d'un morceau en flux audio (`StreamResolver`). `OnDemand(source).play("la mer trenet")` cherche le titre, saute un morceau illisible (3 essais au plus) et rend `Playable(track, streamUrl)`, `NotFound` ou `Unavailable`.
+
+`reveil-youtube` fournit `YouTubeSource()`. Une autre source (yt-dlp côté serveur) implémente simplement `MusicSource`.
+
 ### Sonnerie : implémenter `RingHost`
 
 L'`Application` de l'hôte implémente `fr.clrk.reveil.alarm.RingHost` : les alarmes (`AlarmService`), la source des playlists, la résolution des morceaux en flux, le client qui télécharge les morceaux, l'écran de sonnerie, l'écran d'accueil, l'icône des notifications, et un `RingDisplay` qui suit la sonnerie pour l'écran.

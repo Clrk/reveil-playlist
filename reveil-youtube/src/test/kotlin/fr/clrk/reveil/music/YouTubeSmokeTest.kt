@@ -1,5 +1,6 @@
 package fr.clrk.reveil.music
 
+import fr.clrk.reveil.core.OnDemand
 import fr.clrk.reveil.core.PlaylistLink
 import okhttp3.OkHttpClient
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -22,7 +23,14 @@ class YouTubeSmokeTest {
         assertTrue(AudioResolver.streamUrl(tracks.first()).startsWith("https://"), "aucun flux audio")
     }
 
+    @Test
+    fun aSongAskedByNameCanBePlayed() {
+        val result = OnDemand(YouTubeSource()).play(SONG)
+        assertTrue(result is OnDemand.Result.Playable, "résultat : $result")
+    }
+
     companion object {
+        private const val SONG = "la mer charles trenet"
         private const val QUERY = "lofi morning"
         private const val MAX_TRACKS = 20
 
