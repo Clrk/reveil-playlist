@@ -3,9 +3,9 @@ package fr.clrk.reveil.ui
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import fr.clrk.reveil.core.Download
-import fr.clrk.reveil.core.Update
-import fr.clrk.reveil.core.UpdateBanner
+import fr.clrk.reveil.display.Download
+import fr.clrk.reveil.display.Update
+import fr.clrk.reveil.display.UpdateBanner
 import fr.clrk.reveil.update.Updater
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

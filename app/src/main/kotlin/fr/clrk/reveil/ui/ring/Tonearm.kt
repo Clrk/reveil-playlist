@@ -7,7 +7,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.lerp
-import fr.clrk.reveil.core.ArmPose
+import fr.clrk.reveil.display.ArmPose
 import kotlin.math.cos
 import kotlin.math.sin
 

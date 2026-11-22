@@ -31,13 +31,13 @@ import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.imageResource
 import fr.clrk.reveil.R
-import fr.clrk.reveil.core.ArmPose
-import fr.clrk.reveil.core.CoverCrop
-import fr.clrk.reveil.core.LightStage
-import fr.clrk.reveil.core.DropShadow
-import fr.clrk.reveil.core.RainRunner
-import fr.clrk.reveil.core.RainRunners
-import fr.clrk.reveil.core.Sky
+import fr.clrk.reveil.display.ArmPose
+import fr.clrk.reveil.display.CoverCrop
+import fr.clrk.reveil.display.LightStage
+import fr.clrk.reveil.display.DropShadow
+import fr.clrk.reveil.display.RainRunner
+import fr.clrk.reveil.display.RainRunners
+import fr.clrk.reveil.display.Sky
 
 /** Plate size of the Gemini pictures, and the x the screen is centred on (the turntable). */
 internal const val PLATE_W = 572f

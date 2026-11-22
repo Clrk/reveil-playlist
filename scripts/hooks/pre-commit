@@ -13,4 +13,4 @@ for file in $(git diff --cached --name-only --diff-filter=ACM); do
   fi
 done
 [ "$status" -eq 0 ] || exit 1
-./gradlew -q detekt :core:test :core:koverVerify :app:lintDebug :app:verifyPaparazziDebug
+./gradlew -q gate :app:verifyPaparazziDebug

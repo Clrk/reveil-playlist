@@ -26,8 +26,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import fr.clrk.reveil.alarm.RingService
 import fr.clrk.reveil.alarm.RingState
-import fr.clrk.reveil.core.DayWeather
-import fr.clrk.reveil.core.MorningLight
+import fr.clrk.reveil.display.DayWeather
+import fr.clrk.reveil.display.MorningLight
 import fr.clrk.reveil.ui.ring.MorningScene
 import fr.clrk.reveil.ui.ring.RingClock
 import fr.clrk.reveil.ui.ring.SceneState

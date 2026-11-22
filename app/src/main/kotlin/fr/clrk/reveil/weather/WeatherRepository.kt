@@ -3,12 +3,12 @@ package fr.clrk.reveil.weather
 import android.content.Context
 import androidx.core.content.edit
 import fr.clrk.reveil.alarm.FileTextStore
-import fr.clrk.reveil.core.DayWeather
-import fr.clrk.reveil.core.Geocoding
-import fr.clrk.reveil.core.OpenMeteo
-import fr.clrk.reveil.core.Place
-import fr.clrk.reveil.core.PlaceStore
-import fr.clrk.reveil.music.NewPipeDownloader
+import fr.clrk.reveil.display.DayWeather
+import fr.clrk.reveil.display.Geocoding
+import fr.clrk.reveil.display.OpenMeteo
+import fr.clrk.reveil.display.Place
+import fr.clrk.reveil.display.PlaceStore
+import fr.clrk.reveil.Http
 import fr.clrk.reveil.text
 import okhttp3.OkHttpClient
 import java.io.File
@@ -48,6 +48,6 @@ class WeatherRepository(context: Context) {
     private companion object {
         const val KEY_BODY = "openMeteo"
         const val TIMEOUT_S = 8L
-        val http: OkHttpClient = NewPipeDownloader.instance.client.newBuilder().callTimeout(TIMEOUT_S, TimeUnit.SECONDS).build()
+        val http: OkHttpClient = Http.client.newBuilder().callTimeout(TIMEOUT_S, TimeUnit.SECONDS).build()
     }
 }

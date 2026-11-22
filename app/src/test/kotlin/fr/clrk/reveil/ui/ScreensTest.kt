@@ -5,13 +5,13 @@ import androidx.compose.runtime.Composable
 import app.cash.paparazzi.DeviceConfig
 import app.cash.paparazzi.Paparazzi
 import fr.clrk.reveil.core.Alarm
-import fr.clrk.reveil.core.Download
-import fr.clrk.reveil.core.HalfDay
-import fr.clrk.reveil.core.Sky
+import fr.clrk.reveil.display.Download
+import fr.clrk.reveil.display.HalfDay
+import fr.clrk.reveil.display.Sky
 import fr.clrk.reveil.core.PlaylistChoice
 import fr.clrk.reveil.core.PlaylistId
 import fr.clrk.reveil.core.SearchResult
-import fr.clrk.reveil.core.UpdateBanner
+import fr.clrk.reveil.display.UpdateBanner
 import fr.clrk.reveil.core.WakeInfo
 import org.junit.Rule
 import org.junit.Test

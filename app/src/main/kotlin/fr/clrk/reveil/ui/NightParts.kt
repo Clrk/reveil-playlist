@@ -34,10 +34,10 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import fr.clrk.reveil.core.LightStage
+import fr.clrk.reveil.display.LightStage
 import fr.clrk.reveil.core.Recurrence
-import fr.clrk.reveil.core.Sky
-import fr.clrk.reveil.core.Tonearm
+import fr.clrk.reveil.display.Sky
+import fr.clrk.reveil.display.Tonearm
 import fr.clrk.reveil.ui.ring.Label
 import fr.clrk.reveil.ui.ring.MorningScene
 import fr.clrk.reveil.ui.ring.PLATE_H

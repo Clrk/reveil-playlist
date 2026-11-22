@@ -38,20 +38,20 @@ jobs:
       - name: Versions
         id: versions
         run: |
-          current=$(sed -n 's/.*NewPipeExtractor:\(v[^"]*\)".*/\1/p' app/build.gradle.kts)
+          current=$(sed -n 's/.*NewPipeExtractor:\(v[^"]*\)".*/\1/p' reveil-youtube/build.gradle.kts)
           latest=$(gh api repos/TeamNewPipe/NewPipeExtractor/releases/latest --jq .tag_name)
           echo "current=$current" >> "$GITHUB_OUTPUT"
           echo "latest=$latest" >> "$GITHUB_OUTPUT"
       - name: Move to the latest NewPipeExtractor
         if: steps.versions.outputs.latest != steps.versions.outputs.current
         run: |
-          sed -i "s/NewPipeExtractor:${{ steps.versions.outputs.current }}/NewPipeExtractor:${{ steps.versions.outputs.latest }}/" app/build.gradle.kts
+          sed -i "s/NewPipeExtractor:${{ steps.versions.outputs.current }}/NewPipeExtractor:${{ steps.versions.outputs.latest }}/" reveil-youtube/build.gradle.kts
       - name: YouTube still works
         id: smoke
         run: |
-          if ./gradlew --no-daemon :app:testDebugUnitTest --tests '*YouTubeSmokeTest*' -Psmoke; then
+          if ./gradlew --no-daemon :reveil-youtube:test --tests '*YouTubeSmokeTest*' -Psmoke; then
             echo "result=ok" >> "$GITHUB_OUTPUT"
-          elif grep -rqs SignInConfirmNotBotException app/build/test-results/testDebugUnitTest; then
+          elif grep -rqs SignInConfirmNotBotException reveil-youtube/build/test-results/test; then
             echo "result=bot-check" >> "$GITHUB_OUTPUT"
             echo "::warning::YouTube a demandé aux serveurs GitHub de prouver qu'ils ne sont pas des robots : test impossible aujourd'hui (les téléphones ne sont pas concernés)."
           else
@@ -59,7 +59,7 @@ jobs:
           fi
       - name: Tests
         if: steps.versions.outputs.latest != steps.versions.outputs.current
-        run: ./gradlew --no-daemon detekt :core:test :core:koverVerify :app:lintDebug :app:assembleRelease
+        run: ./gradlew --no-daemon gate :app:assembleRelease
       - name: Merge and publish
         if: steps.versions.outputs.latest != steps.versions.outputs.current
         env:

@@ -8,11 +8,11 @@ import android.os.Build
 import android.os.Environment
 import androidx.core.content.edit
 import androidx.core.net.toUri
-import fr.clrk.reveil.core.Download
-import fr.clrk.reveil.core.Releases
-import fr.clrk.reveil.core.Update
-import fr.clrk.reveil.core.UpdateBanner
-import fr.clrk.reveil.music.NewPipeDownloader
+import fr.clrk.reveil.display.Download
+import fr.clrk.reveil.display.Releases
+import fr.clrk.reveil.display.Update
+import fr.clrk.reveil.display.UpdateBanner
+import fr.clrk.reveil.Http
 import fr.clrk.reveil.text
 
 /**
@@ -69,6 +69,6 @@ class Updater(private val context: Context) {
     private companion object {
         const val APK = "application/vnd.android.package-archive"
         const val NONE = -1L
-        val http get() = NewPipeDownloader.instance.client
+        val http get() = Http.client
     }
 }
