@@ -1,7 +1,9 @@
 package fr.clrk.reveil.alarm
 
 import android.content.Context
+import android.net.Uri
 import fr.clrk.reveil.core.Alarm
+import fr.clrk.reveil.core.Track
 import fr.clrk.reveil.core.WakeSource
 import fr.clrk.reveil.display.DayWeather
 import fr.clrk.reveil.display.RecordChange
@@ -22,7 +24,7 @@ class RingScreen(private val context: Context) : RingDisplay {
         weatherJob = MainScope().launch { RingState.weather(withContext(Dispatchers.IO) { weather.refresh(); weather.day() }) }
     }
 
-    override fun playing(source: WakeSource) = RingState.playing(source)
+    override fun playing(source: WakeSource, cover: Uri?) = RingState.playing(source, cover)
 
     override fun ended() = RingState.ended()
 
@@ -63,9 +65,10 @@ object RingState {
         if (day != null) ui.value = ui.value?.copy(weather = day)
     }
 
-    fun playing(source: WakeSource) {
+    /** The cover kept on the phone when there is one, so it shows offline; else the one online. */
+    fun playing(source: WakeSource, stored: Uri? = null) {
         val track = (source as? WakeSource.Music)?.track
-        ui.value = ui.value?.copy(cover = track?.let { cover(it.id) })
+        ui.value = ui.value?.copy(cover = stored?.toString() ?: track?.let(::coverOf))
     }
 
     /** The track is over (or failed): the record starts changing, keeping the old cover until it stops. */
@@ -87,7 +90,7 @@ object RingState {
 
     fun noSnoozeLeft() { ui.value = ui.value?.copy(snooze = null) }
 
-    private fun cover(videoId: String) = "https://i.ytimg.com/vi/$videoId/hqdefault.jpg"
+    fun coverOf(track: Track) = "https://i.ytimg.com/vi/${track.id}/hqdefault.jpg"
 
     private fun snoozeText(alarm: Alarm): String? = when (val left = alarm.snoozesLeft) {
         0 -> null

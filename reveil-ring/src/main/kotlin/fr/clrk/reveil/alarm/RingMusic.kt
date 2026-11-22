@@ -50,6 +50,10 @@ class RingMusic(private val context: Context, playlistId: String?) {
         null
     }
 
+    /** The cover kept on the device for a cached track, null otherwise. */
+    fun coverOf(source: WakeSource): Uri? =
+        (source as? WakeSource.Music)?.takeIf { it.cached }?.let { cache?.covers?.of(it.track) }?.let(Uri::fromFile)
+
     fun started(music: WakeSource.Music) = cache?.markPlayed(music.track)
 
     private companion object {
