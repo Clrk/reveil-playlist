@@ -6,7 +6,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.media.RingtoneManager
-import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
 import android.os.SystemClock
@@ -41,6 +40,8 @@ class RingService : Service() {
     private var session: WakeSession? = null
     private var loading: Job? = null
     private var ringingSince = 0L
+    /** Stops the last-resort sound, which plays outside ExoPlayer. */
+    private var stopLastResort: (() -> Unit)? = null
 
     private val host get() = ringHost
     private val display get() = host.display
@@ -108,7 +109,7 @@ class RingService : Service() {
 
     /** Snoozing is refused once the limit is reached: the alarm keeps ringing and the button goes away. */
     private fun snooze() {
-        val id = alarmId ?: return
+        val id = alarmId ?: return stopSelf()
         if (host.alarms.snooze(id)) finish { } else display.noSnoozeLeft()
     }
 
@@ -144,18 +145,7 @@ class RingService : Service() {
     private fun onFailure() {
         val session = session?.takeUnless { it.lastResort } ?: return
         session.onFailed()
-        if (session.lastResort) lastResortRingtone() else playNext()
-    }
-
-    /** ExoPlayer could not even play the fallback sound: let the platform ring it, or the system alarm. */
-    private fun lastResortRingtone() {
-        host.fallbackSound?.let { return LoopingAlarm.play(this, it) }
-        val uri = android.provider.Settings.System.DEFAULT_ALARM_ALERT_URI
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return LoopingAlarm.play(this, uri)
-        RingtoneManager.getRingtone(this, uri)?.apply {
-            isLooping = true
-            play()
-        }
+        if (session.lastResort) stopLastResort = LastResort.ring(this, host.fallbackSound) else playNext()
     }
 
     private inner class PlayerEvents : Player.Listener {
@@ -187,6 +177,7 @@ class RingService : Service() {
 
     override fun onDestroy() {
         scope.cancel()
+        stopLastResort?.invoke()
         player.release()
         if (wakeLock.isHeld) wakeLock.release()
         display.hide()
