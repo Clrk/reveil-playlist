@@ -1,6 +1,6 @@
 # Contribuer
 
-Les contributions passent par des pull requests sur `main`. Personne ne pousse directement sur `main` : chaque fusion peut publier une version. Seule exception, la PR automatique de `newpipe.yml`, qui ne fusionne qu'après le test réel contre YouTube et toute la vérification.
+Les contributions passent par des pull requests sur `main`. Personne ne pousse directement sur `main` : chaque fusion peut publier une version. Même la PR automatique de `newpipe.yml` (nouvelle version de NewPipeExtractor) attend d'être relue et fusionnée à la main.
 
 Avant de coder quelque chose d'important, ouvrez une issue pour en parler : ça évite une PR refusée pour une question de direction. Pour un bug, donnez le modèle du téléphone, la version d'Android et celle de l'app.
 
@@ -53,7 +53,7 @@ L'extraction passe par [NewPipeExtractor](https://github.com/TeamNewPipe/NewPipe
 ## Limites connues
 
 - La couche Android n'a que des captures d'écran automatisées (Paparazzi) : le reste se vérifie sur un téléphone (voir la recette ci-dessous).
-- YouTube change régulièrement son site. Chaque matin, le workflow [`newpipe.yml`](.github/workflows/newpipe.yml) teste l'app contre le vrai YouTube et passe à la dernière version de NewPipeExtractor dès qu'elle sort : si les tests passent, la version est publiée et les téléphones la proposent ; sinon une issue est ouverte. Dans l'app, un message prévient quand YouTube ne répond plus comme prévu, et la sonnerie de secours garantit que le réveil sonne quand même.
+- YouTube change régulièrement son site. Chaque matin, le workflow [`newpipe.yml`](.github/workflows/newpipe.yml) teste l'app contre le vrai YouTube et propose la dernière version de NewPipeExtractor dès qu'elle sort : si les tests passent, une pull request attend d'être relue, et sa fusion publie la version que les téléphones proposent ; sinon une issue est ouverte. Dans l'app, un message prévient quand YouTube ne répond plus comme prévu, et la sonnerie de secours garantit que le réveil sonne quand même.
 - Les alarmes ne sonnent pas entre un redémarrage et le premier déverrouillage du téléphone.
 
 ## Recette sur téléphone
