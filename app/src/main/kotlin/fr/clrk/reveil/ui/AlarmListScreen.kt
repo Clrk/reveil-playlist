@@ -40,8 +40,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import fr.clrk.reveil.core.Alarm
-import fr.clrk.reveil.core.HalfDay
-import fr.clrk.reveil.core.UpdateBanner
+import fr.clrk.reveil.display.HalfDay
+import fr.clrk.reveil.display.UpdateBanner
 import fr.clrk.reveil.core.WakeInfo
 
 /** Everything the alarm list displays, computed by the activity. [offline] maps alarm ids to their offline status. */

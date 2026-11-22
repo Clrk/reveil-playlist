@@ -9,7 +9,7 @@
 ## Comment c'est testé
 
 - [ ] Scénario(s) `.feature` ajouté(s) ou modifié(s), vus en échec avant le code
-- [ ] `./gradlew detekt :core:test :core:koverVerify :app:lintDebug :app:verifyPaparazziDebug` est vert
+- [ ] `./gradlew gate :app:verifyPaparazziDebug` est vert
 - [ ] Testé sur un téléphone (si ça touche à la sonnerie, aux alarmes ou au téléchargement)
 
 ## Captures

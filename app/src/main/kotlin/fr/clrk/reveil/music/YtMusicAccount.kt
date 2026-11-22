@@ -8,6 +8,7 @@ import fr.clrk.reveil.core.PlaylistSource
 import fr.clrk.reveil.core.Track
 import fr.clrk.reveil.core.YtMusicParser
 import fr.clrk.reveil.core.YtMusicSession
+import fr.clrk.reveil.Http
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -46,7 +47,7 @@ class YtMusicAccount(context: Context) : PlaylistSource {
             .header("X-Goog-AuthUser", "0")
             .header("User-Agent", NewPipeDownloader.USER_AGENT)
             .build()
-        return NewPipeDownloader.instance.client.newCall(request).execute().use { response ->
+        return Http.client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) throw IOException("YouTube Music HTTP ${response.code}")
             response.body.string()
         }

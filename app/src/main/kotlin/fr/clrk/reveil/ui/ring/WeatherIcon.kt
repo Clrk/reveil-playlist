@@ -23,7 +23,7 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.vector.PathParser
-import fr.clrk.reveil.core.Sky
+import fr.clrk.reveil.display.Sky
 
 private const val VIEW = 24f
 private val CLOUD_HIGH = PathParser().parsePathString("M7 14.5h9.5a3.5 3.5 0 0 0 .4-7A5 5 0 0 0 7.3 6.6 4 4 0 0 0 7 14.5z").toPath()

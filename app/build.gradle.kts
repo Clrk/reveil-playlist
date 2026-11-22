@@ -42,7 +42,9 @@ android {
 kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) } }
 
 dependencies {
-    implementation(project(":core"))
+    implementation(project(":app-logic"))
+    implementation(project(":reveil-youtube"))
+    implementation(project(":reveil-ring"))
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs_nio:2.1.5")
 
     implementation(platform("androidx.compose:compose-bom:2025.10.01"))
@@ -55,13 +57,9 @@ dependencies {
     implementation("androidx.media3:media3-exoplayer:1.8.0")
     implementation("androidx.work:work-runtime-ktx:2.10.5")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
-    implementation("com.github.TeamNewPipe:NewPipeExtractor:v0.27.1")
     implementation("com.squareup.okhttp3:okhttp:5.1.0")
     implementation("io.coil-kt.coil3:coil-compose:3.3.0")
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.3.0")
 
     testImplementation("junit:junit:4.13.2")
 }
-
-// `-Psmoke` runs YouTubeSmokeTest against the real YouTube (daily workflow); it is skipped otherwise.
-tasks.withType<Test>().configureEach { systemProperty("smoke", (findProperty("smoke") != null).toString()) }

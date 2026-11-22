@@ -13,4 +13,4 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "reveil"
-include(":core", ":app")
+include(":reveil-core", ":reveil-youtube", ":reveil-ring", ":app-logic", ":app")

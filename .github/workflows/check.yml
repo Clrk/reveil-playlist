@@ -19,4 +19,4 @@ jobs:
         env:
           LANG: C.UTF-8
           LC_ALL: C.UTF-8
-        run: ./gradlew --no-daemon detekt :core:test :core:koverVerify :app:lintDebug
+        run: ./gradlew --no-daemon gate

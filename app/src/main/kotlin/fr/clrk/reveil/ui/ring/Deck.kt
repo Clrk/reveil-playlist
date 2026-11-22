@@ -10,10 +10,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameMillis
 import coil3.compose.rememberAsyncImagePainter
 import fr.clrk.reveil.alarm.RingState
-import fr.clrk.reveil.core.ArmPose
-import fr.clrk.reveil.core.RecordChange
-import fr.clrk.reveil.core.Tonearm
-import fr.clrk.reveil.core.Turntable
+import fr.clrk.reveil.display.ArmPose
+import fr.clrk.reveil.display.RecordChange
+import fr.clrk.reveil.display.Tonearm
+import fr.clrk.reveil.display.Turntable
 
 /** What the turntable shows at one moment: the cover on the record, the record angle and the arm. */
 data class Deck(val cover: Label, val spin: Float, val arm: ArmPose)

@@ -33,7 +33,7 @@ import fr.clrk.reveil.music.PrefetchScheduler
 import fr.clrk.reveil.music.YouTubeHealth
 import fr.clrk.reveil.update.Updater
 import fr.clrk.reveil.weather.WeatherRepository
-import fr.clrk.reveil.core.Place
+import fr.clrk.reveil.display.Place
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime

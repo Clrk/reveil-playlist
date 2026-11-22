@@ -5,7 +5,7 @@ import androidx.compose.runtime.Composable
 import app.cash.paparazzi.DeviceConfig
 import app.cash.paparazzi.Paparazzi
 import fr.clrk.reveil.core.Alarm
-import fr.clrk.reveil.core.Place
+import fr.clrk.reveil.display.Place
 import fr.clrk.reveil.core.Recurrence
 import org.junit.Rule
 import org.junit.Test

@@ -8,10 +8,10 @@ Avant de coder quelque chose d'important, ouvrez une issue pour en parler : ça 
 2. **Partez d'une branche à jour** de `main`, nommée par le sujet (`fix/sonnerie-secours`, `feat/meteo-vent`).
 3. **Le comportement d'abord, en scénario.** Toute règle nouvelle ou corrigée s'écrit en `.feature` français (Soit / Quand / Alors), sans parler du code. Lancez-le et regardez-le échouer avant d'écrire le code. Pas d'étape vide ni « en attente ».
 4. **Un bug = un test qui le reproduit.** Expliquez la cause dans la PR, ajoutez le scénario qui échoue pour la bonne raison, puis corrigez la cause, pas le symptôme.
-5. **La logique va dans `core`**, testable sans téléphone. `app` ne fait que brancher Android.
+5. **La logique va dans un module Kotlin pur** (`reveil-core`, ou `app-logic` pour ce qui ne sert qu'aux écrans de cette app), testable sans téléphone. `reveil-ring` et `app` ne font que brancher Android.
 6. **Tout est vert en local avant d'ouvrir la PR** :
    ```sh
-   ./gradlew detekt :core:test :core:koverVerify :app:lintDebug :app:verifyPaparazziDebug
+   ./gradlew gate :app:verifyPaparazziDebug
    ```
    Couverture ≥ 95 % en lignes et en branches, aucun avertissement detekt ou lint, fichiers sous 5 000 tokens (le hook `scripts/hooks` le vérifie).
 7. **Un changement visible montre son résultat.** Si l'écran change, enregistrez les captures (`:app:recordPaparazziDebug`), commitez-les et mettez un avant / après (capture ou GIF) dans la PR.
@@ -26,23 +26,28 @@ La relecture regarde, dans l'ordre : le contexte, la justesse, la sécurité, le
 
 | Module | Rôle |
 | --- | --- |
-| `core` | Kotlin pur, sans Android : planification, snooze, lien et recherche de playlist, file aléatoire, sécurité de la sonnerie (délai, secours, arrêt), pré-téléchargement, lumière et météo de l'écran de réveil, mises à jour et santé de YouTube. Testé en BDD. |
-| `app` | Adaptateurs Android fins : AlarmManager, service de premier plan (Media3/ExoPlayer, `USAGE_ALARM`), NewPipeExtractor, WorkManager, UI Compose. |
+| `reveil-core` | Kotlin pur, sans Android ni NewPipe : alarmes, récurrence, planification, snooze, lien et recherche de playlist, file aléatoire, sécurité de la sonnerie (délai, secours, arrêt), règles de pré-téléchargement, santé de la source. Testé en BDD. Réutilisable par d'autres apps (Bonjour). |
+| `reveil-youtube` | Kotlin pur : NewPipeExtractor derrière les ports de `reveil-core`, `YouTubeHealth`. Passe par le client HTTP que lui donne l'app hôte (`YouTube.init(client)`). |
+| `reveil-ring` | Bibliothèque Android : `RingService`, `RingMusic`, receivers, `VolumeFader`, pré-téléchargement du soir, cache des morceaux. L'app hôte se branche par `RingHost`. |
+| `app-logic` | Kotlin pur, propre à cette app : platine, bras, lumière du matin, pluie, météo, mises à jour. Testé en BDD. |
+| `app` | L'app reveil-playlist : UI Compose, compte YouTube Music, météo, mises à jour, et l'implémentation de `RingHost`. |
+
+Réutiliser ces modules dans une autre app : voir [docs/REUTILISATION.md](docs/REUTILISATION.md).
 
 L'extraction passe par [NewPipeExtractor](https://github.com/TeamNewPipe/NewPipeExtractor) derrière l'interface `PlaylistSource` : on peut la remplacer par yt-dlp (youtubedl-android) si YouTube casse l'extracteur.
 
 ## Tests et qualité
 
-- Scénarios Gherkin en français dans `core/src/test/resources/features`, exécutés par un petit runner maison (`core/src/test/kotlin/.../bdd`). Une étape non définie ou ambiguë fait échouer le scénario.
-- Couverture Kover sur `core` : minimum 95 % en lignes et en branches (`./gradlew :core:koverVerify`).
+- Scénarios Gherkin en français dans `<module>/src/test/resources/features`, exécutés par un petit runner maison partagé (`reveil-core/src/testFixtures/kotlin/.../bdd`). Une étape non définie ou ambiguë fait échouer le scénario.
+- Couverture Kover sur `reveil-core` et `app-logic` : minimum 95 % en lignes et en branches (`./gradlew gate`).
 - detekt avec complexité cyclomatique ≤ 6, Android lint avec avertissements bloquants.
 - Captures d'écran Paparazzi de chaque écran dans `app/src/test/snapshots` (`:app:verifyPaparazziDebug`).
-- Test réel contre YouTube (`YouTubeSmokeTest`, lancé seulement avec `-Psmoke`), joué chaque matin par `newpipe.yml`.
+- Test réel contre YouTube (`reveil-youtube`, `YouTubeSmokeTest`, lancé seulement avec `-Psmoke`), joué chaque matin par `newpipe.yml`.
 - `check.yml` rejoue detekt, tests, couverture et lint sur chaque PR.
 - Hook pré-commit : `git config core.hooksPath scripts/hooks` (refuse les fichiers > 5 000 tokens, lance linters, tests et couverture).
 
 ```sh
-./gradlew detekt :core:test :core:koverVerify :app:lintDebug :app:verifyPaparazziDebug :app:assembleDebug
+./gradlew gate :app:verifyPaparazziDebug :app:assembleDebug
 ```
 
 ## Limites connues

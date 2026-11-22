@@ -35,8 +35,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.clickable
 import androidx.compose.runtime.withFrameMillis
-import fr.clrk.reveil.core.DayWeather
-import fr.clrk.reveil.core.HalfDay
+import fr.clrk.reveil.display.DayWeather
+import fr.clrk.reveil.display.HalfDay
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalTime

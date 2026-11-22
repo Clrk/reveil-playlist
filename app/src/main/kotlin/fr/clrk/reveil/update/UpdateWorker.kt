@@ -14,8 +14,8 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import fr.clrk.reveil.R
-import fr.clrk.reveil.ReveilApp
-import fr.clrk.reveil.core.Update
+import fr.clrk.reveil.alarm.RingChannels
+import fr.clrk.reveil.display.Update
 import fr.clrk.reveil.ui.MainActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -36,7 +36,7 @@ class UpdateWorker(context: Context, params: WorkerParameters) : CoroutineWorker
         val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         val app = Intent(applicationContext, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         val open = PendingIntent.getActivity(applicationContext, 0, app, flags)
-        val notification = NotificationCompat.Builder(applicationContext, ReveilApp.CHANNEL_REMINDER)
+        val notification = NotificationCompat.Builder(applicationContext, RingChannels.REMINDER)
             .setSmallIcon(R.drawable.ic_alarm)
             .setContentTitle("Nouvelle version ${update.version} disponible")
             .setContentText("Touchez pour l'installer")
