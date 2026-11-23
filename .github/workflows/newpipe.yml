@@ -4,8 +4,9 @@ name: NewPipe
 # its latest release when there is one. A new release that passes the tests opens a pull request,
 # never merged automatically: it is published once someone has reviewed and merged it.
 # Anything that fails opens an issue instead.
-# YouTube sometimes asks GitHub's servers to sign in ("confirm you're not a bot") because they are
-# datacenter machines: phones are not concerned, so that answer is "unknown", not "broken". Then no
+# YouTube sometimes asks GitHub's servers to sign in ("confirm you're not a bot") or answers
+# "content not available" to them, because they are datacenter machines (issues #12 and #24):
+# phones are not concerned, so that answer is "unknown", not "broken". The test is retried once. Then no
 # issue is opened, and a new NewPipeExtractor is still proposed once the project tests pass:
 # keeping NewPipe up to date is the real repair.
 on:
@@ -50,9 +51,11 @@ jobs:
       - name: YouTube still works
         id: smoke
         run: |
-          if ./gradlew --no-daemon :reveil-youtube:test --tests '*YouTubeSmokeTest*' -Psmoke; then
+          smoke() { ./gradlew --no-daemon :reveil-youtube:test --tests '*YouTubeSmokeTest*' --rerun -Psmoke; }
+          # YouTube's refusals to GitHub's servers come and go: one more try a minute later.
+          if smoke || { sleep 60 && smoke; }; then
             echo "result=ok" >> "$GITHUB_OUTPUT"
-          elif grep -rqs SignInConfirmNotBotException reveil-youtube/build/test-results/test; then
+          elif grep -rqsE 'SignInConfirmNotBotException|ContentNotAvailableException' reveil-youtube/build/test-results/test; then
             echo "result=bot-check" >> "$GITHUB_OUTPUT"
             echo "::warning::YouTube a demandé aux serveurs GitHub de prouver qu'ils ne sont pas des robots : test impossible aujourd'hui (les téléphones ne sont pas concernés)."
           else
